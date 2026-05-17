@@ -235,13 +235,16 @@
           <input id="site" placeholder="שם האתר או כתובת הבניין">
         </label>
         <label>
+          צלם
+          <input id="photographer" placeholder="שם הצלם">
+        </label>
+        <label>
           הערות
           <textarea id="notes" placeholder="הערות שיופיעו על התמונה"></textarea>
         </label>
       </div>
 
       <div class="checks">
-        <label class="check"><input id="photographerCheck" type="checkbox"> צלם</label>
         <label class="check location-check"><input id="locationCheck" type="checkbox"> מיקום</label>
         <label class="check"><input id="dateTimeCheck" type="checkbox"> תאריך ושעה</label>
       </div>
@@ -368,9 +371,7 @@
     function buildLines() {
       const lines = [];
       addLine(lines, "אתר", "site");
-      if (document.getElementById("photographerCheck").checked) {
-        lines.push("צלם: סומן");
-      }
+      addLine(lines, "צלם", "photographer");
       if (document.getElementById("locationCheck").checked) {
         if (currentLocation) {
           lines.push(`מיקום: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`);
