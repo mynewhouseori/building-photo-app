@@ -178,7 +178,8 @@
     }
 
     .btn,
-    .download {
+    .download,
+    .clear-btn {
       min-height: 48px;
       border-radius: 11px;
       border: 0;
@@ -188,25 +189,54 @@
       padding: 10px 12px;
       font-weight: 800;
       text-decoration: none;
+      box-shadow: 0 14px 24px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .22);
+      transition: transform .14s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    .btn:hover,
+    .download:hover,
+    .clear-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 30px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .3);
+      filter: brightness(1.04);
+    }
+
+    .btn:active,
+    .download:active,
+    .clear-btn:active {
+      transform: translateY(1px) scale(.99);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .14);
     }
 
     .btn {
-      background: #f97316;
+      background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
       color: #ffffff;
       cursor: pointer;
     }
 
     .btn.done {
-      background: #16a34a;
+      background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
     }
 
     .download {
-      background: #111827;
+      background: linear-gradient(180deg, #1f2937 0%, #020617 100%);
       color: #ffffff;
     }
 
     .download.saved {
-      background: #16a34a;
+      background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+    }
+
+    .clear-btn {
+      width: 100%;
+      margin-top: 9px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .95) 0%, rgba(226, 232, 240, .95) 100%);
+      color: #111827;
+      cursor: pointer;
+    }
+
+    .clear-btn[hidden] {
+      display: none;
     }
 
     .btn:disabled,
@@ -264,6 +294,7 @@
           <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true">שמירה</a>
         </div>
+        <button id="clearBtn" class="clear-btn" type="button" hidden>נקה מסך</button>
         <div id="status" class="status" aria-live="polite"></div>
       </div>
     </section>
@@ -275,6 +306,7 @@
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
+    const clearBtn = document.getElementById("clearBtn");
     const statusEl = document.getElementById("status");
     let selectedImage = null;
 
@@ -300,6 +332,7 @@
           downloadLink.setAttribute("aria-disabled", "true");
           downloadLink.classList.remove("saved");
           downloadLink.textContent = "שמירה";
+          clearBtn.hidden = true;
           statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
         };
         image.src = reader.result;
@@ -342,7 +375,30 @@
 
       downloadLink.classList.add("saved");
       downloadLink.textContent = "נשמר";
+      clearBtn.hidden = false;
       statusEl.textContent = "השמירה התחילה";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      document.getElementById("site").value = "";
+      document.getElementById("photographer").value = "";
+      document.getElementById("notes").value = "";
+      document.getElementById("dateTimeCheck").checked = false;
+      photoInput.value = "";
+      selectedImage = null;
+
+      preview.innerHTML = "כאן תופיע התמונה";
+      preview.classList.remove("final-preview");
+      createBtn.disabled = true;
+      createBtn.classList.remove("done");
+      createBtn.textContent = "צור תמונה";
+      downloadLink.href = "#";
+      downloadLink.download = "building-photo-report.png";
+      downloadLink.setAttribute("aria-disabled", "true");
+      downloadLink.classList.remove("saved");
+      downloadLink.textContent = "שמירה";
+      clearBtn.hidden = true;
+      statusEl.textContent = "המסך נוקה";
     });
 
     function drawInfoPanel(ctx, width, height) {
