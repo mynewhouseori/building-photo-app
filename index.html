@@ -152,6 +152,11 @@
       display: block;
     }
 
+    .preview.map-ready {
+      cursor: pointer;
+      border-color: #2563eb;
+    }
+
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -195,6 +200,22 @@
       line-height: 1.5;
     }
 
+    .map-link {
+      min-height: 42px;
+      border-radius: 10px;
+      display: none;
+      place-items: center;
+      text-align: center;
+      color: #2563eb;
+      background: rgba(255, 255, 255, .86);
+      font-weight: 800;
+      text-decoration: underline;
+    }
+
+    .map-link.visible {
+      display: grid;
+    }
+
     @media (max-width: 380px) {
       .checks,
       .actions {
@@ -235,6 +256,7 @@
           <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true">שמירה</a>
         </div>
+        <a id="mapLink" class="map-link" href="#" target="_blank" rel="noopener noreferrer">פתח מיקום במפה</a>
         <div id="status" class="status" aria-live="polite"></div>
       </div>
     </section>
@@ -245,8 +267,20 @@
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
+    const mapLink = document.getElementById("mapLink");
+    const locationCheck = document.getElementById("locationCheck");
     const statusEl = document.getElementById("status");
     let selectedImage = null;
+    let currentLocation = null;
+
+    locationCheck.addEventListener("change", async () => {
+      if (locationCheck.checked) {
+        await requestLocation();
+      } else {
+        currentLocation = null;
+        setMapLink(null);
+      }
+    });
 
     photoInput.addEventListener("change", () => {
       const file = photoInput.files && photoInput.files[0];
@@ -264,6 +298,7 @@
           createBtn.disabled = false;
           downloadLink.href = "#";
           downloadLink.setAttribute("aria-disabled", "true");
+          preview.classList.remove("map-ready");
           statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
         };
         image.src = reader.result;
@@ -271,10 +306,17 @@
       reader.readAsDataURL(file);
     });
 
-    createBtn.addEventListener("click", () => {
+    createBtn.addEventListener("click", async () => {
       if (!selectedImage) {
         statusEl.textContent = "צריך לצלם קודם.";
         return;
+      }
+
+      if (locationCheck.checked && !currentLocation) {
+        const ok = await requestLocation();
+        if (!ok) {
+          return;
+        }
       }
 
       const canvas = document.createElement("canvas");
@@ -292,7 +334,13 @@
       preview.appendChild(canvas);
       downloadLink.href = dataUrl;
       downloadLink.setAttribute("aria-disabled", "false");
-      statusEl.textContent = "נוצר קובץ תמונה עם הפרטים.";
+      const mapUrl = currentLocation ? getMapUrl(currentLocation) : null;
+      setMapLink(mapUrl);
+      preview.classList.toggle("map-ready", Boolean(mapUrl));
+      preview.onclick = mapUrl ? () => window.open(mapUrl, "_blank", "noopener,noreferrer") : null;
+      statusEl.textContent = mapUrl
+        ? "נוצר קובץ תמונה עם הפרטים. אפשר ללחוץ על התמונה או על הקישור לפתיחת המיקום במפה."
+        : "נוצר קובץ תמונה עם הפרטים.";
     });
 
     function drawInfoPanel(ctx, width, height) {
@@ -324,7 +372,12 @@
         lines.push("צלם: סומן");
       }
       if (document.getElementById("locationCheck").checked) {
-        lines.push("מיקום: סומן");
+        if (currentLocation) {
+          lines.push(`מיקום: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`);
+          lines.push(`מפה: ${getMapUrl(currentLocation)}`);
+        } else {
+          lines.push("מיקום: סומן");
+        }
       }
       if (document.getElementById("dateTimeCheck").checked) {
         lines.push(`תאריך ושעה: ${new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`);
@@ -337,6 +390,57 @@
       const value = document.getElementById(id).value.trim();
       if (value) {
         lines.push(`${label}: ${value}`);
+      }
+    }
+
+    function requestLocation() {
+      if (!navigator.geolocation) {
+        locationCheck.checked = false;
+        statusEl.textContent = "GPS לא נתמך בדפדפן הזה.";
+        return Promise.resolve(false);
+      }
+
+      statusEl.textContent = "מבקש מיקום GPS...";
+
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy
+            };
+            setMapLink(getMapUrl(currentLocation));
+            statusEl.textContent = `מיקום נקלט. דיוק משוער: ${Math.round(currentLocation.accuracy)} מטר.`;
+            resolve(true);
+          },
+          () => {
+            currentLocation = null;
+            locationCheck.checked = false;
+            setMapLink(null);
+            statusEl.textContent = "לא התקבל אישור מיקום. צריך לאשר GPS בדפדפן כדי לצרף מיקום.";
+            resolve(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 12000,
+            maximumAge: 30000
+          }
+        );
+      });
+    }
+
+    function getMapUrl(location) {
+      return `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+    }
+
+    function setMapLink(url) {
+      if (url) {
+        mapLink.href = url;
+        mapLink.classList.add("visible");
+      } else {
+        mapLink.href = "#";
+        mapLink.classList.remove("visible");
       }
     }
 
