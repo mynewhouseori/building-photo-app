@@ -143,6 +143,8 @@
       aspect-ratio: 7 / 9;
       padding: 0;
       background: rgba(255, 255, 255, .08);
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, .22), 0 18px 34px rgba(0, 0, 0, .24);
     }
 
     .preview img,
@@ -185,6 +187,10 @@
       cursor: pointer;
     }
 
+    .btn.done {
+      background: #16a34a;
+    }
+
     .download {
       background: #111827;
       color: #ffffff;
@@ -201,6 +207,16 @@
       color: #475569;
       font-size: 13px;
       line-height: 1.5;
+    }
+
+    .status.success {
+      color: #ffffff;
+      background: rgba(22, 163, 74, .92);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
     }
 
     @media (max-width: 380px) {
@@ -273,8 +289,11 @@
           preview.classList.remove("final-preview");
           preview.appendChild(image.cloneNode());
           createBtn.disabled = false;
+          createBtn.classList.remove("done");
+          createBtn.textContent = "צור תמונה";
           downloadLink.href = "#";
           downloadLink.setAttribute("aria-disabled", "true");
+          statusEl.classList.remove("success");
           statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
         };
         image.src = reader.result;
@@ -304,7 +323,10 @@
       preview.appendChild(canvas);
       downloadLink.href = dataUrl;
       downloadLink.setAttribute("aria-disabled", "false");
-      statusEl.textContent = "נוצר קובץ תמונה עם הפרטים.";
+      createBtn.classList.add("done");
+      createBtn.textContent = "התמונה נוצרה";
+      statusEl.classList.add("success");
+      statusEl.textContent = "התמונה נוצרה ומוכנה לשמירה";
     });
 
     function drawInfoPanel(ctx, width, height) {
