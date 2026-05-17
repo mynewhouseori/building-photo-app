@@ -292,6 +292,7 @@
           createBtn.classList.remove("done");
           createBtn.textContent = "צור תמונה";
           downloadLink.href = "#";
+          downloadLink.download = "building-photo-report.png";
           downloadLink.setAttribute("aria-disabled", "true");
           statusEl.classList.remove("success");
           statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
@@ -322,6 +323,7 @@
       preview.classList.add("final-preview");
       preview.appendChild(canvas);
       downloadLink.href = dataUrl;
+      downloadLink.download = createDownloadFileName();
       downloadLink.setAttribute("aria-disabled", "false");
       createBtn.classList.add("done");
       createBtn.textContent = "התמונה נוצרה";
@@ -367,6 +369,22 @@
       if (value) {
         lines.push(`${label}: ${value}`);
       }
+    }
+
+    function createDownloadFileName() {
+      const now = new Date();
+      const pad = (value) => String(value).padStart(2, "0");
+      const stamp = [
+        now.getFullYear(),
+        pad(now.getMonth() + 1),
+        pad(now.getDate())
+      ].join("") + "-" + [
+        pad(now.getHours()),
+        pad(now.getMinutes()),
+        pad(now.getSeconds())
+      ].join("");
+
+      return `building-photo-report-${stamp}.png`;
     }
 
     function drawCover(ctx, image, width, height) {
