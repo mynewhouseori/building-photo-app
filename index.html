@@ -33,6 +33,15 @@
       gap: 14px;
     }
 
+    .rights {
+      margin: 2px 0 0;
+      color: rgba(255, 255, 255, .82);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .42);
+    }
+
     h1 {
       margin: 0;
       color: #ffffff;
@@ -264,6 +273,7 @@
         <div id="status" class="status" aria-live="polite"></div>
       </div>
     </section>
+    <footer class="rights">כל הזכויות שמורות</footer>
   </main>
 
   <script>
@@ -361,6 +371,7 @@
         lines.push(`תאריך ושעה: ${new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`);
       }
       addLine(lines, "הערות", "notes");
+      lines.push("כל הזכויות שמורות");
       return lines;
     }
 
