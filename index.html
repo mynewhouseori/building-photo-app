@@ -205,6 +205,10 @@
       color: #ffffff;
     }
 
+    .download.saved {
+      background: #16a34a;
+    }
+
     .btn:disabled,
     .download[aria-disabled="true"] {
       opacity: .5;
@@ -216,16 +220,6 @@
       color: #475569;
       font-size: 13px;
       line-height: 1.5;
-    }
-
-    .status.success {
-      color: #ffffff;
-      background: rgba(22, 163, 74, .92);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-weight: 800;
-      text-align: center;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
     }
 
     @media (max-width: 380px) {
@@ -304,7 +298,8 @@
           downloadLink.href = "#";
           downloadLink.download = "building-photo-report.png";
           downloadLink.setAttribute("aria-disabled", "true");
-          statusEl.classList.remove("success");
+          downloadLink.classList.remove("saved");
+          downloadLink.textContent = "שמירה";
           statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
         };
         image.src = reader.result;
@@ -337,8 +332,17 @@
       downloadLink.setAttribute("aria-disabled", "false");
       createBtn.classList.add("done");
       createBtn.textContent = "התמונה נוצרה";
-      statusEl.classList.add("success");
-      statusEl.textContent = "התמונה נוצרה ומוכנה לשמירה";
+      statusEl.textContent = "";
+    });
+
+    downloadLink.addEventListener("click", () => {
+      if (downloadLink.getAttribute("aria-disabled") === "true") {
+        return;
+      }
+
+      downloadLink.classList.add("saved");
+      downloadLink.textContent = "נשמר";
+      statusEl.textContent = "השמירה התחילה";
     });
 
     function drawInfoPanel(ctx, width, height) {
