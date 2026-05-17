@@ -310,7 +310,7 @@
     const statusEl = document.getElementById("status");
     let selectedImage = null;
     const watermarkLogo = new Image();
-    watermarkLogo.src = "watermark-logo.jpeg";
+    watermarkLogo.src = "watermark-logo-transparent.png";
 
     photoInput.addEventListener("change", () => {
       const file = photoInput.files && photoInput.files[0];
@@ -472,9 +472,7 @@
       const y = 54;
 
       ctx.save();
-      ctx.globalAlpha = 0.78;
-      ctx.fillStyle = "rgba(255, 255, 255, .72)";
-      ctx.fillRect(x - 12, y - 12, logoWidth + 24, logoHeight + 24);
+      ctx.globalAlpha = 0.82;
       ctx.drawImage(watermarkLogo, x, y, logoWidth, logoHeight);
       ctx.restore();
     }
