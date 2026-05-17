@@ -119,6 +119,11 @@
       accent-color: #f97316;
     }
 
+    .location-check {
+      color: #2563eb;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, .28);
+    }
+
     .camera {
       margin-top: 12px;
       display: grid;
@@ -209,17 +214,14 @@
           <input id="site" placeholder="שם האתר או כתובת הבניין">
         </label>
         <label>
-          צלם
-          <input id="photographer" placeholder="שם הצלם">
-        </label>
-        <label>
           הערות
           <textarea id="notes" placeholder="הערות שיופיעו על התמונה"></textarea>
         </label>
       </div>
 
       <div class="checks">
-        <label class="check"><input id="locationCheck" type="checkbox"> מיקום</label>
+        <label class="check"><input id="photographerCheck" type="checkbox"> צלם</label>
+        <label class="check location-check"><input id="locationCheck" type="checkbox"> מיקום</label>
         <label class="check"><input id="dateTimeCheck" type="checkbox"> תאריך ושעה</label>
       </div>
 
@@ -318,7 +320,9 @@
     function buildLines() {
       const lines = [];
       addLine(lines, "אתר", "site");
-      addLine(lines, "צלם", "photographer");
+      if (document.getElementById("photographerCheck").checked) {
+        lines.push("צלם: סומן");
+      }
       if (document.getElementById("locationCheck").checked) {
         lines.push("מיקום: סומן");
       }
