@@ -139,12 +139,25 @@
       padding: 12px;
     }
 
+    .preview.final-preview {
+      aspect-ratio: 7 / 9;
+      padding: 0;
+      background: rgba(255, 255, 255, .08);
+    }
+
     .preview img,
     .preview canvas {
       width: 100%;
       height: 100%;
-      object-fit: cover;
       display: block;
+    }
+
+    .preview img {
+      object-fit: cover;
+    }
+
+    .preview canvas {
+      object-fit: contain;
     }
 
     .actions {
@@ -257,6 +270,7 @@
         image.onload = () => {
           selectedImage = image;
           preview.innerHTML = "";
+          preview.classList.remove("final-preview");
           preview.appendChild(image.cloneNode());
           createBtn.disabled = false;
           downloadLink.href = "#";
@@ -286,6 +300,7 @@
 
       const dataUrl = canvas.toDataURL("image/png");
       preview.innerHTML = "";
+      preview.classList.add("final-preview");
       preview.appendChild(canvas);
       downloadLink.href = dataUrl;
       downloadLink.setAttribute("aria-disabled", "false");
