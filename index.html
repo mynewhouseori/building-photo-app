@@ -405,24 +405,25 @@
     });
 
     function drawInfoPanel(ctx, width, height) {
-      const top = height - 430;
-      ctx.fillStyle = "rgba(17, 24, 39, .86)";
-      ctx.fillRect(0, top, width, 430);
+      const panelHeight = 290;
+      const top = height - panelHeight;
+      ctx.fillStyle = "rgba(17, 24, 39, .82)";
+      ctx.fillRect(0, top, width, panelHeight);
       ctx.fillStyle = "#f97316";
-      ctx.fillRect(0, top, width, 12);
+      ctx.fillRect(0, top, width, 8);
 
       ctx.direction = "rtl";
       ctx.textAlign = "right";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "700 58px Segoe UI, Arial, sans-serif";
-      ctx.fillText("מערך צילום לבניין", width - 64, top + 84);
+      ctx.font = "700 40px Segoe UI, Arial, sans-serif";
+      ctx.fillText("מערך צילום לבניין", width - 52, top + 58);
 
       const lines = buildLines();
-      ctx.font = "500 34px Segoe UI, Arial, sans-serif";
-      let y = top + 150;
+      ctx.font = "500 26px Segoe UI, Arial, sans-serif";
+      let y = top + 102;
       lines.forEach((line) => {
-        wrapText(ctx, line, width - 64, y, width - 128, 44);
-        y += line.length > 42 ? 84 : 54;
+        wrapText(ctx, line, width - 52, y, width - 104, 34);
+        y += line.length > 48 ? 58 : 36;
       });
     }
 
