@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>מערך צילום לבניין</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: #101827;
+      background: url("mobile-background01.png") center top / cover no-repeat;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 480px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 28px;
+      line-height: 1.2;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
+    }
+
+    .panel {
+      margin-top: auto;
+      border-radius: 16px;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .fields {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid rgba(255, 255, 255, .62);
+      border-radius: 10px;
+      background: transparent;
+      color: #ffffff;
+      padding: 10px 11px;
+      outline: none;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, .16);
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(255, 255, 255, .72);
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, .18);
+    }
+
+    .checks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    .check {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .62);
+      border-radius: 10px;
+      background: transparent;
+      color: #ffffff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, .16);
+    }
+
+    .check input {
+      width: 19px;
+      min-height: 19px;
+      accent-color: #f97316;
+    }
+
+    .camera {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border: 1px dashed rgba(249, 115, 22, .65);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .16);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: rgba(255, 255, 255, .82);
+      text-align: center;
+      padding: 12px;
+    }
+
+    .preview img,
+    .preview canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .btn,
+    .download {
+      min-height: 48px;
+      border-radius: 11px;
+      border: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 10px 12px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .btn {
+      background: #f97316;
+      color: #ffffff;
+      cursor: pointer;
+    }
+
+    .download {
+      background: #111827;
+      color: #ffffff;
+    }
+
+    .btn:disabled,
+    .download[aria-disabled="true"] {
+      opacity: .5;
+      pointer-events: none;
+    }
+
+    .status {
+      min-height: 20px;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 380px) {
+      .checks,
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>מערך צילום לבניין</h1>
+
+    <section class="panel">
+      <div class="fields">
+        <label>
+          אתר
+          <input id="site" placeholder="שם האתר או כתובת הבניין">
+        </label>
+        <label>
+          צלם
+          <input id="photographer" placeholder="שם הצלם">
+        </label>
+        <label>
+          הערות
+          <textarea id="notes" placeholder="הערות שיופיעו על התמונה"></textarea>
+        </label>
+      </div>
+
+      <div class="checks">
+        <label class="check"><input id="locationCheck" type="checkbox"> מיקום</label>
+        <label class="check"><input id="dateTimeCheck" type="checkbox"> תאריך ושעה</label>
+      </div>
+
+      <div class="camera">
+        <label>
+          צילום
+          <input id="photoInput" type="file" accept="image/*" capture="environment">
+        </label>
+        <div id="preview" class="preview">כאן תופיע התמונה</div>
+        <div class="actions">
+          <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
+          <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true">שמירה</a>
+        </div>
+        <div id="status" class="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const photoInput = document.getElementById("photoInput");
+    const preview = document.getElementById("preview");
+    const createBtn = document.getElementById("createBtn");
+    const downloadLink = document.getElementById("downloadLink");
+    const statusEl = document.getElementById("status");
+    let selectedImage = null;
+
+    photoInput.addEventListener("change", () => {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          selectedImage = image;
+          preview.innerHTML = "";
+          preview.appendChild(image.cloneNode());
+          createBtn.disabled = false;
+          downloadLink.href = "#";
+          downloadLink.setAttribute("aria-disabled", "true");
+          statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    createBtn.addEventListener("click", () => {
+      if (!selectedImage) {
+        statusEl.textContent = "צריך לצלם קודם.";
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      const width = 1400;
+      const height = 1800;
+      const ctx = canvas.getContext("2d");
+      canvas.width = width;
+      canvas.height = height;
+
+      drawCover(ctx, selectedImage, width, height);
+      drawInfoPanel(ctx, width, height);
+
+      const dataUrl = canvas.toDataURL("image/png");
+      preview.innerHTML = "";
+      preview.appendChild(canvas);
+      downloadLink.href = dataUrl;
+      downloadLink.setAttribute("aria-disabled", "false");
+      statusEl.textContent = "נוצר קובץ תמונה עם הפרטים.";
+    });
+
+    function drawInfoPanel(ctx, width, height) {
+      const top = height - 430;
+      ctx.fillStyle = "rgba(17, 24, 39, .86)";
+      ctx.fillRect(0, top, width, 430);
+      ctx.fillStyle = "#f97316";
+      ctx.fillRect(0, top, width, 12);
+
+      ctx.direction = "rtl";
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 58px Segoe UI, Arial, sans-serif";
+      ctx.fillText("מערך צילום לבניין", width - 64, top + 84);
+
+      const lines = buildLines();
+      ctx.font = "500 34px Segoe UI, Arial, sans-serif";
+      let y = top + 150;
+      lines.forEach((line) => {
+        wrapText(ctx, line, width - 64, y, width - 128, 44);
+        y += line.length > 42 ? 84 : 54;
+      });
+    }
+
+    function buildLines() {
+      const lines = [];
+      addLine(lines, "אתר", "site");
+      addLine(lines, "צלם", "photographer");
+      if (document.getElementById("locationCheck").checked) {
+        lines.push("מיקום: סומן");
+      }
+      if (document.getElementById("dateTimeCheck").checked) {
+        lines.push(`תאריך ושעה: ${new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`);
+      }
+      addLine(lines, "הערות", "notes");
+      return lines;
+    }
+
+    function addLine(lines, label, id) {
+      const value = document.getElementById(id).value.trim();
+      if (value) {
+        lines.push(`${label}: ${value}`);
+      }
+    }
+
+    function drawCover(ctx, image, width, height) {
+      const imageRatio = image.naturalWidth / image.naturalHeight;
+      const targetRatio = width / height;
+      let sourceWidth = image.naturalWidth;
+      let sourceHeight = image.naturalHeight;
+      let sourceX = 0;
+      let sourceY = 0;
+
+      if (imageRatio > targetRatio) {
+        sourceWidth = image.naturalHeight * targetRatio;
+        sourceX = (image.naturalWidth - sourceWidth) / 2;
+      } else {
+        sourceHeight = image.naturalWidth / targetRatio;
+        sourceY = (image.naturalHeight - sourceHeight) / 2;
+      }
+
+      ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(" ");
+      let line = "";
+      words.forEach((word) => {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && line) {
+          ctx.fillText(line, x, y);
+          line = word;
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      });
+      ctx.fillText(line, x, y);
+    }
+  </script>
+</body>
+</html>
