@@ -309,6 +309,8 @@
     const clearBtn = document.getElementById("clearBtn");
     const statusEl = document.getElementById("status");
     let selectedImage = null;
+    const watermarkLogo = new Image();
+    watermarkLogo.src = "watermark-logo.jpeg";
 
     photoInput.addEventListener("change", () => {
       const file = photoInput.files && photoInput.files[0];
@@ -354,6 +356,7 @@
       canvas.height = height;
 
       drawCover(ctx, selectedImage, width, height);
+      drawWatermark(ctx);
       drawInfoPanel(ctx, width, height);
 
       const dataUrl = canvas.toDataURL("image/png");
@@ -456,6 +459,24 @@
       ].join("");
 
       return `building-photo-report-${stamp}.png`;
+    }
+
+    function drawWatermark(ctx) {
+      if (!watermarkLogo.complete || !watermarkLogo.naturalWidth) {
+        return;
+      }
+
+      const logoWidth = 220;
+      const logoHeight = Math.round(logoWidth * watermarkLogo.naturalHeight / watermarkLogo.naturalWidth);
+      const x = 54;
+      const y = 54;
+
+      ctx.save();
+      ctx.globalAlpha = 0.78;
+      ctx.fillStyle = "rgba(255, 255, 255, .72)";
+      ctx.fillRect(x - 12, y - 12, logoWidth + 24, logoHeight + 24);
+      ctx.drawImage(watermarkLogo, x, y, logoWidth, logoHeight);
+      ctx.restore();
     }
 
     function drawCover(ctx, image, width, height) {
