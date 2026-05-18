@@ -42,6 +42,45 @@
       text-shadow: 0 1px 8px rgba(0, 0, 0, .42);
     }
 
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .lang-picker {
+      display: inline-flex;
+      gap: 6px;
+      padding: 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .26);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .18);
+      backdrop-filter: blur(4px);
+      flex: 0 0 auto;
+    }
+
+    .lang-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, .38);
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      background: rgba(255, 255, 255, .1);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22);
+    }
+
+    .lang-btn.active {
+      background: #ffffff;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .18);
+    }
+
     h1 {
       margin: 0;
       color: #ffffff;
@@ -284,43 +323,49 @@
 </head>
 <body>
   <main class="app">
-    <h1>מערך צילום לבניין</h1>
+    <div class="topbar">
+      <h1 data-i18n="title">מערך צילום לבניין</h1>
+      <div class="lang-picker" aria-label="בחירת שפה">
+        <button class="lang-btn active" type="button" data-lang="he" aria-label="עברית">🇮🇱</button>
+        <button class="lang-btn" type="button" data-lang="en" aria-label="English">🇺🇸</button>
+      </div>
+    </div>
 
     <section class="panel">
       <div class="fields">
         <label>
-          אתר
-          <input id="site" placeholder="שם האתר או כתובת הבניין">
+          <span data-i18n="siteLabel">אתר</span>
+          <input id="site" data-i18n-placeholder="sitePlaceholder" placeholder="שם האתר או כתובת הבניין">
         </label>
         <label>
-          צלם
-          <input id="photographer" placeholder="שם הצלם">
+          <span data-i18n="photographerLabel">צלם</span>
+          <input id="photographer" data-i18n-placeholder="photographerPlaceholder" placeholder="שם הצלם">
         </label>
         <label>
-          הערות
-          <textarea id="notes" placeholder="הערות שיופיעו על התמונה"></textarea>
+          <span data-i18n="notesLabel">הערות</span>
+          <textarea id="notes" data-i18n-placeholder="notesPlaceholder" placeholder="הערות שיופיעו על התמונה"></textarea>
         </label>
       </div>
 
       <div class="checks">
-        <label class="check"><input id="dateTimeCheck" type="checkbox"> תאריך ושעה</label>
-        <button id="cameraBtn" class="camera-icon-btn" type="button" aria-label="צילום">
+        <label class="check"><input id="dateTimeCheck" type="checkbox"> <span data-i18n="dateTimeLabel">תאריך ושעה</span></label>
+        <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
           <span class="camera-icon" aria-hidden="true">📷</span>
         </button>
       </div>
 
       <div class="camera">
-        <div id="preview" class="preview">כאן תופיע התמונה</div>
-        <button id="captureBtn" class="clear-btn" type="button" hidden>צלם</button>
+        <div id="preview" class="preview" data-i18n="previewEmpty">כאן תופיע התמונה</div>
+        <button id="captureBtn" class="clear-btn" type="button" data-i18n="captureBtn" hidden>צלם</button>
         <div class="actions">
-          <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
-          <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true">שמירה</a>
+          <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled>צור תמונה</button>
+          <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
-        <button id="clearBtn" class="clear-btn" type="button" hidden>נקה מסך</button>
+        <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה מסך</button>
         <div id="status" class="status" aria-live="polite"></div>
       </div>
     </section>
-    <footer class="rights">כל הזכויות שמורות</footer>
+    <footer class="rights" data-i18n="rights">כל הזכויות שמורות</footer>
   </main>
 
   <script>
@@ -334,8 +379,113 @@
     let selectedImage = null;
     let cameraStream = null;
     let liveVideo = null;
+    let currentLang = "he";
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
+
+    const translations = {
+      he: {
+        dir: "rtl",
+        lang: "he",
+        title: "מערך צילום לבניין",
+        siteLabel: "אתר",
+        sitePlaceholder: "שם האתר או כתובת הבניין",
+        photographerLabel: "צלם",
+        photographerPlaceholder: "שם הצלם",
+        notesLabel: "הערות",
+        notesPlaceholder: "הערות שיופיעו על התמונה",
+        dateTimeLabel: "תאריך ושעה",
+        cameraAria: "צילום",
+        previewEmpty: "כאן תופיע התמונה",
+        captureBtn: "צלם",
+        createBtn: "צור תמונה",
+        createdBtn: "התמונה נוצרה",
+        saveBtn: "שמירה",
+        savedBtn: "נשמר",
+        clearBtn: "נקה מסך",
+        rights: "כל הזכויות שמורות",
+        needPhoto: "צריך לצלם קודם.",
+        saveStarted: "השמירה התחילה",
+        screenCleared: "המסך נוקה",
+        cameraUnsupported: "המצלמה לא נתמכת בדפדפן הזה.",
+        openingCamera: "פותח מצלמה...",
+        cameraReady: "המצלמה פתוחה. לחץ צלם.",
+        cameraDenied: "לא ניתן לפתוח מצלמה. צריך לאשר הרשאת מצלמה בדפדפן.",
+        cameraLoading: "המצלמה עדיין נטענת. נסה שוב בעוד רגע.",
+        photoCaptured: "התמונה צולמה. אפשר ליצור תמונה עם הפרטים.",
+        dateTimeLine: "תאריך ושעה"
+      },
+      en: {
+        dir: "ltr",
+        lang: "en",
+        title: "Building Photo Setup",
+        siteLabel: "Site",
+        sitePlaceholder: "Site name or building address",
+        photographerLabel: "Photographer",
+        photographerPlaceholder: "Photographer name",
+        notesLabel: "Notes",
+        notesPlaceholder: "Notes to appear on the image",
+        dateTimeLabel: "Date and time",
+        cameraAria: "Camera",
+        previewEmpty: "The photo will appear here",
+        captureBtn: "Capture",
+        createBtn: "Create image",
+        createdBtn: "Image created",
+        saveBtn: "Save",
+        savedBtn: "Saved",
+        clearBtn: "Clear screen",
+        rights: "All rights reserved",
+        needPhoto: "Take a photo first.",
+        saveStarted: "Save started",
+        screenCleared: "Screen cleared",
+        cameraUnsupported: "Camera is not supported in this browser.",
+        openingCamera: "Opening camera...",
+        cameraReady: "Camera is open. Tap Capture.",
+        cameraDenied: "Could not open the camera. Allow camera permission in the browser.",
+        cameraLoading: "The camera is still loading. Try again in a moment.",
+        photoCaptured: "Photo captured. You can create an image with the details.",
+        dateTimeLine: "Date and time"
+      }
+    };
+
+    function t(key) {
+      return translations[currentLang][key] || translations.he[key] || key;
+    }
+
+    function setLanguage(lang) {
+      currentLang = translations[lang] ? lang : "he";
+      const text = translations[currentLang];
+      document.documentElement.lang = text.lang;
+      document.documentElement.dir = text.dir;
+      document.title = text.title;
+
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+        element.placeholder = t(element.dataset.i18nPlaceholder);
+      });
+      document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+        element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+      });
+      document.querySelectorAll(".lang-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.lang === currentLang);
+      });
+
+      if (!selectedImage && !cameraStream) {
+        preview.textContent = t("previewEmpty");
+      }
+      if (createBtn.classList.contains("done")) {
+        createBtn.textContent = t("createdBtn");
+      }
+      if (downloadLink.classList.contains("saved")) {
+        downloadLink.textContent = t("savedBtn");
+      }
+    }
+
+    document.querySelectorAll(".lang-btn").forEach((button) => {
+      button.addEventListener("click", () => setLanguage(button.dataset.lang));
+    });
 
     cameraBtn.addEventListener("click", async () => {
       await startCamera();
@@ -347,7 +497,7 @@
 
     createBtn.addEventListener("click", () => {
       if (!selectedImage) {
-        statusEl.textContent = "צריך לצלם קודם.";
+        statusEl.textContent = t("needPhoto");
         return;
       }
 
@@ -370,7 +520,7 @@
       downloadLink.download = createDownloadFileName();
       downloadLink.setAttribute("aria-disabled", "false");
       createBtn.classList.add("done");
-      createBtn.textContent = "התמונה נוצרה";
+      createBtn.textContent = t("createdBtn");
       statusEl.textContent = "";
     });
 
@@ -380,9 +530,9 @@
       }
 
       downloadLink.classList.add("saved");
-      downloadLink.textContent = "נשמר";
+      downloadLink.textContent = t("savedBtn");
       clearBtn.hidden = false;
-      statusEl.textContent = "השמירה התחילה";
+      statusEl.textContent = t("saveStarted");
     });
 
     clearBtn.addEventListener("click", () => {
@@ -393,30 +543,30 @@
       stopCamera();
       selectedImage = null;
 
-      preview.innerHTML = "כאן תופיע התמונה";
+      preview.innerHTML = t("previewEmpty");
       preview.classList.remove("final-preview");
       captureBtn.hidden = true;
       createBtn.disabled = true;
       createBtn.classList.remove("done");
-      createBtn.textContent = "צור תמונה";
+      createBtn.textContent = t("createBtn");
       downloadLink.href = "#";
       downloadLink.download = "building-photo-report.png";
       downloadLink.setAttribute("aria-disabled", "true");
       downloadLink.classList.remove("saved");
-      downloadLink.textContent = "שמירה";
+      downloadLink.textContent = t("saveBtn");
       clearBtn.hidden = true;
-      statusEl.textContent = "המסך נוקה";
+      statusEl.textContent = t("screenCleared");
     });
 
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        statusEl.textContent = "המצלמה לא נתמכת בדפדפן הזה.";
+        statusEl.textContent = t("cameraUnsupported");
         return;
       }
 
       try {
         stopCamera();
-        statusEl.textContent = "פותח מצלמה...";
+        statusEl.textContent = t("openingCamera");
         cameraStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
           audio: false
@@ -433,15 +583,15 @@
         preview.appendChild(liveVideo);
         captureBtn.hidden = false;
         createBtn.disabled = true;
-        statusEl.textContent = "המצלמה פתוחה. לחץ צלם.";
+        statusEl.textContent = t("cameraReady");
       } catch (error) {
-        statusEl.textContent = "לא ניתן לפתוח מצלמה. צריך לאשר הרשאת מצלמה בדפדפן.";
+        statusEl.textContent = t("cameraDenied");
       }
     }
 
     function capturePhoto() {
       if (!liveVideo || !liveVideo.videoWidth) {
-        statusEl.textContent = "המצלמה עדיין נטענת. נסה שוב בעוד רגע.";
+        statusEl.textContent = t("cameraLoading");
         return;
       }
 
@@ -460,14 +610,14 @@
         captureBtn.hidden = true;
         createBtn.disabled = false;
         createBtn.classList.remove("done");
-        createBtn.textContent = "צור תמונה";
+        createBtn.textContent = t("createBtn");
         downloadLink.href = "#";
         downloadLink.download = "building-photo-report.png";
         downloadLink.setAttribute("aria-disabled", "true");
         downloadLink.classList.remove("saved");
-        downloadLink.textContent = "שמירה";
+        downloadLink.textContent = t("saveBtn");
         clearBtn.hidden = true;
-        statusEl.textContent = "התמונה צולמה. אפשר ליצור תמונה עם הפרטים.";
+        statusEl.textContent = t("photoCaptured");
       };
       image.src = photoCanvas.toDataURL("image/jpeg", 0.92);
     }
@@ -489,29 +639,32 @@
       ctx.fillRect(0, top, width, 8);
 
       ctx.direction = "rtl";
-      ctx.textAlign = "right";
+      ctx.direction = translations[currentLang].dir;
+      ctx.textAlign = currentLang === "he" ? "right" : "left";
       ctx.fillStyle = "#ffffff";
       ctx.font = "700 40px Segoe UI, Arial, sans-serif";
-      ctx.fillText("מערך צילום לבניין", width - 52, top + 58);
+      const textX = currentLang === "he" ? width - 52 : 52;
+      ctx.fillText(t("title"), textX, top + 58);
 
       const lines = buildLines();
       ctx.font = "500 26px Segoe UI, Arial, sans-serif";
       let y = top + 102;
       lines.forEach((line) => {
-        wrapText(ctx, line, width - 52, y, width - 104, 34);
+        wrapText(ctx, line, textX, y, width - 104, 34);
         y += line.length > 48 ? 58 : 36;
       });
     }
 
     function buildLines() {
       const lines = [];
-      addLine(lines, "אתר", "site");
-      addLine(lines, "צלם", "photographer");
+      addLine(lines, t("siteLabel"), "site");
+      addLine(lines, t("photographerLabel"), "photographer");
       if (document.getElementById("dateTimeCheck").checked) {
-        lines.push(`תאריך ושעה: ${new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(new Date())}`);
+        const locale = currentLang === "he" ? "he-IL" : "en-US";
+        lines.push(`${t("dateTimeLine")}: ${new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date())}`);
       }
-      addLine(lines, "הערות", "notes");
-      lines.push("כל הזכויות שמורות");
+      addLine(lines, t("notesLabel"), "notes");
+      lines.push(t("rights"));
       return lines;
     }
 
@@ -588,6 +741,8 @@
       });
       ctx.fillText(line, x, y);
     }
+
+    setLanguage("he");
   </script>
 </body>
 </html>
