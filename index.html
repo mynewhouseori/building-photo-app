@@ -183,8 +183,36 @@
     }
 
     .camera-icon {
-      font-size: 35px;
+      width: 34px;
+      height: 24px;
+      border: 3px solid currentColor;
+      border-radius: 6px;
+      display: inline-block;
+      position: relative;
       line-height: 1;
+    }
+
+    .camera-icon::before {
+      content: "";
+      position: absolute;
+      width: 11px;
+      height: 11px;
+      border: 3px solid currentColor;
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .camera-icon::after {
+      content: "";
+      position: absolute;
+      width: 11px;
+      height: 5px;
+      border-radius: 4px 4px 0 0;
+      background: currentColor;
+      left: 5px;
+      top: -8px;
     }
 
     .camera {
@@ -351,7 +379,7 @@
         <label class="check"><input id="dateTimeCheck" type="checkbox"> <span data-i18n="dateTimeLabel">תאריך ושעה</span></label>
         <label class="check"><input id="locationCheck" type="checkbox"> <span data-i18n="locationLabel">מיקום</span></label>
         <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
-          <span class="camera-icon" aria-hidden="true">📷</span>
+          <span class="camera-icon" aria-hidden="true"></span>
         </button>
       </div>
 
