@@ -313,6 +313,20 @@
       line-height: 1.5;
     }
 
+    .trial-notice {
+      min-height: 20px;
+      color: rgba(255, 255, 255, .9);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+      text-align: center;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+    }
+
+    .trial-notice.expired {
+      color: #fee2e2;
+    }
+
     @media (max-width: 380px) {
       .checks,
       .actions {
@@ -363,6 +377,7 @@
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
         <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה מסך</button>
+        <div id="trialNotice" class="trial-notice" aria-live="polite"></div>
         <div id="status" class="status" aria-live="polite"></div>
       </div>
     </section>
@@ -373,16 +388,19 @@
     const cameraBtn = document.getElementById("cameraBtn");
     const captureBtn = document.getElementById("captureBtn");
     const locationCheck = document.getElementById("locationCheck");
+    const dateTimeCheck = document.getElementById("dateTimeCheck");
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
     const clearBtn = document.getElementById("clearBtn");
+    const trialNotice = document.getElementById("trialNotice");
     const statusEl = document.getElementById("status");
     let selectedImage = null;
     let cameraStream = null;
     let liveVideo = null;
     let currentLang = "he";
     let currentAddress = "";
+    let trialState = null;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -423,7 +441,11 @@
         locationLoading: "מאתר כתובת לפי מיקום...",
         locationReady: "המיקום נקלט ככתובת.",
         locationDenied: "לא התקבל אישור מיקום. צריך לאשר GPS בדפדפן.",
-        addressUnavailable: "לא נמצאה כתובת מלאה למיקום הזה."
+        addressUnavailable: "לא נמצאה כתובת מלאה למיקום הזה.",
+        trialActive: "גרסת ניסיון: נותרו {days} ימים. שימוש עד {date}.",
+        trialLastDay: "גרסת ניסיון: היום האחרון לשימוש. שימוש עד {date}.",
+        trialExpired: "תקופת הניסיון הסתיימה. השימוש באפליקציה מוגבל.",
+        trialBlocked: "תקופת הניסיון הסתיימה. לא ניתן לבצע פעולה זו."
       },
       en: {
         dir: "ltr",
@@ -461,7 +483,11 @@
         locationLoading: "Finding street and city...",
         locationReady: "Location was added as an address.",
         locationDenied: "Location permission was not approved. Allow GPS in the browser.",
-        addressUnavailable: "No full address was found for this location."
+        addressUnavailable: "No full address was found for this location.",
+        trialActive: "Trial version: {days} days left. Available until {date}.",
+        trialLastDay: "Trial version: last day of use. Available until {date}.",
+        trialExpired: "The trial period has ended. App use is limited.",
+        trialBlocked: "The trial period has ended. This action is disabled."
       }
     };
 
@@ -498,6 +524,7 @@
       if (downloadLink.classList.contains("saved")) {
         downloadLink.textContent = t("savedBtn");
       }
+      updateTrialNotice();
     }
 
     document.querySelectorAll(".lang-btn").forEach((button) => {
@@ -505,6 +532,10 @@
     });
 
     cameraBtn.addEventListener("click", async () => {
+      if (isTrialExpired()) {
+        statusEl.textContent = t("trialBlocked");
+        return;
+      }
       await startCamera();
     });
 
@@ -513,6 +544,11 @@
     });
 
     locationCheck.addEventListener("change", async () => {
+      if (isTrialExpired()) {
+        locationCheck.checked = false;
+        statusEl.textContent = t("trialBlocked");
+        return;
+      }
       if (locationCheck.checked) {
         const ok = await requestAddress();
         if (!ok) {
@@ -524,6 +560,10 @@
     });
 
     createBtn.addEventListener("click", () => {
+      if (isTrialExpired()) {
+        statusEl.textContent = t("trialBlocked");
+        return;
+      }
       if (!selectedImage) {
         statusEl.textContent = t("needPhoto");
         return;
@@ -563,6 +603,10 @@
     });
 
     downloadLink.addEventListener("click", () => {
+      if (isTrialExpired()) {
+        statusEl.textContent = t("trialBlocked");
+        return;
+      }
       if (downloadLink.getAttribute("aria-disabled") === "true") {
         return;
       }
@@ -668,6 +712,67 @@
         cameraStream = null;
       }
       liveVideo = null;
+    }
+
+    function initializeTrial() {
+      const key = "buildingPhotoTrialStart";
+      let start = Number(localStorage.getItem(key));
+
+      if (!start || Number.isNaN(start)) {
+        start = Date.now();
+        localStorage.setItem(key, String(start));
+      }
+
+      const expiresAt = start + 7 * 24 * 60 * 60 * 1000;
+      trialState = { start, expiresAt };
+      updateTrialNotice();
+      applyTrialLock();
+    }
+
+    function getTrialDaysLeft() {
+      if (!trialState) {
+        return 0;
+      }
+
+      return Math.max(0, Math.ceil((trialState.expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+    }
+
+    function isTrialExpired() {
+      return trialState && Date.now() > trialState.expiresAt;
+    }
+
+    function updateTrialNotice() {
+      if (!trialState) {
+        return;
+      }
+
+      const locale = currentLang === "he" ? "he-IL" : "en-US";
+      const expiryText = new Intl.DateTimeFormat(locale, { dateStyle: "short" }).format(new Date(trialState.expiresAt));
+      const daysLeft = getTrialDaysLeft();
+
+      trialNotice.classList.toggle("expired", isTrialExpired());
+      if (isTrialExpired()) {
+        trialNotice.textContent = t("trialExpired");
+      } else if (daysLeft <= 1) {
+        trialNotice.textContent = t("trialLastDay").replace("{date}", expiryText);
+      } else {
+        trialNotice.textContent = t("trialActive").replace("{days}", String(daysLeft)).replace("{date}", expiryText);
+      }
+    }
+
+    function applyTrialLock() {
+      if (!isTrialExpired()) {
+        return;
+      }
+
+      stopCamera();
+      cameraBtn.disabled = true;
+      captureBtn.hidden = true;
+      createBtn.disabled = true;
+      downloadLink.setAttribute("aria-disabled", "true");
+      locationCheck.disabled = true;
+      dateTimeCheck.disabled = true;
+      statusEl.textContent = t("trialBlocked");
     }
 
     function requestAddress() {
@@ -843,6 +948,7 @@
     }
 
     setLanguage("he");
+    initializeTrial();
   </script>
 </body>
 </html>
