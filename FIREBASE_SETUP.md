@@ -1,25 +1,34 @@
-# Firebase trial setup
+# Firebase email-only usage setup
 
 This app can run in two modes:
 
-- Local trial mode: currently active. The 7-day timer is stored in the browser.
-- Firebase trial mode: recommended for colleagues. Users sign in with Firebase Authentication, and the 7-day timer is stored in Firestore by user ID.
+- Local mode: currently active while `firebase-config.js` has `enabled: false`.
+- Firebase mode: users enter an email once. The app silently uses Firebase Anonymous Authentication, stores the email on the device, starts a 7-day trial, and logs basic usage counters in Firestore.
 
-## Recommended Firebase setup
+## Recommended dedicated Firebase setup
 
-1. In Firebase Console, use a dedicated Firebase project, or reuse an existing one with a separate collection.
-2. Enable Authentication with Email/Password.
-3. Create colleague users in Firebase Authentication.
+1. Create a new Firebase project only for `building-photo-app`.
+2. Add a Web app in Firebase Project settings.
+3. Enable Authentication -> Sign-in method -> Anonymous.
 4. Enable Cloud Firestore.
-5. Publish the rules in `firestore.rules`.
+5. Publish the rules from `firestore.rules`.
 6. Copy the Web app Firebase config into `firebase-config.js`.
 7. Set `enabled: true`.
+
+## What the user sees
+
+On first use only:
+
+- Email field
+- Confirm email button
+
+After that, the browser remembers the anonymous Firebase session and the email in local storage, so the user does not need to enter anything again on the same phone/browser.
 
 ## Firestore collection
 
 The app uses:
 
-`buildingPhotoTrials/{uid}`
+`buildingPhotoTrials/{anonymousUserUid}`
 
 Each document stores:
 
@@ -28,7 +37,12 @@ Each document stores:
 - `startsAt`
 - `expiresAt`
 - `createdAt`
+- `lastSeenAt`
+- `openCount`
+- `captureCount`
+- `createImageCount`
+- `saveCount`
 
-## Important note
+## Notes
 
-The Firebase web config is not a secret. Access control must come from Firebase Authentication and Firestore Security Rules.
+This is intentionally simple. It is stronger than a browser-only trial because the start date and usage counters are stored in Firebase, but it is still not high-security licensing. A technical user who clears browser data can create a new anonymous identity.

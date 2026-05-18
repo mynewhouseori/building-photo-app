@@ -3,18 +3,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /buildingPhotoTrials/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
-      allow create: if request.auth != null
-        && request.auth.uid == userId
+      function allowedFields() {
+        return [
+          'uid',
+          'email',
+          'startsAt',
+          'expiresAt',
+          'createdAt',
+          'lastSeenAt',
+          'openCount',
+          'captureCount',
+          'createImageCount',
+          'saveCount'
+        ];
+      }
+
+      allow read: if isOwner();
+
+      allow create: if isOwner()
         && request.resource.data.uid == userId
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.keys().hasOnly(['uid', 'email', 'startsAt', 'expiresAt', 'createdAt'])
+        && request.resource.data.keys().hasOnly(allowedFields())
+        && request.resource.data.email is string
         && request.resource.data.startsAt is timestamp
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt > request.time;
 
-      allow update, delete: if false;
+      allow update: if isOwner()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.startsAt == resource.data.startsAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasOnly(allowedFields())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'lastSeenAt',
+          'openCount',
+          'captureCount',
+          'createImageCount',
+          'saveCount'
+        ]);
+
+      allow delete: if false;
     }
   }
 }

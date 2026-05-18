@@ -340,7 +340,7 @@
 
     .access-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 9px;
     }
 
@@ -378,10 +378,6 @@
           <label>
             <span data-i18n="emailLabel">אימייל</span>
             <input id="accessEmail" type="email" autocomplete="email" data-i18n-placeholder="emailPlaceholder" placeholder="אימייל">
-          </label>
-          <label>
-            <span data-i18n="passwordLabel">סיסמה</span>
-            <input id="accessPassword" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder" placeholder="סיסמה">
           </label>
         </div>
         <button id="accessLoginBtn" class="clear-btn" type="button" data-i18n="loginBtn">כניסה לגרסת ניסיון</button>
@@ -433,7 +429,6 @@
     const dateTimeCheck = document.getElementById("dateTimeCheck");
     const accessPanel = document.getElementById("accessPanel");
     const accessEmail = document.getElementById("accessEmail");
-    const accessPassword = document.getElementById("accessPassword");
     const accessLoginBtn = document.getElementById("accessLoginBtn");
     const accessNote = document.getElementById("accessNote");
     const preview = document.getElementById("preview");
@@ -450,6 +445,8 @@
     let trialState = null;
     let firebaseMode = false;
     let firebaseServices = null;
+    let currentUserEmail = "";
+    let firebaseTrialLoadedUser = "";
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -468,9 +465,7 @@
         locationLabel: "מיקום",
         emailLabel: "אימייל",
         emailPlaceholder: "אימייל",
-        passwordLabel: "סיסמה",
-        passwordPlaceholder: "סיסמה",
-        loginBtn: "כניסה לגרסת ניסיון",
+        loginBtn: "אישור אימייל",
         cameraAria: "צילום",
         previewEmpty: "כאן תופיע התמונה",
         captureBtn: "צלם",
@@ -500,10 +495,11 @@
         trialLastDay: "גרסת ניסיון: היום האחרון לשימוש. שימוש עד {date}.",
         trialExpired: "תקופת הניסיון הסתיימה. השימוש באפליקציה מוגבל.",
         trialBlocked: "תקופת הניסיון הסתיימה. לא ניתן לבצע פעולה זו.",
-        loginRequired: "יש להתחבר כדי להפעיל את גרסת הניסיון.",
-        loggingIn: "מתחבר...",
-        loginFailed: "הכניסה נכשלה. בדוק אימייל וסיסמה.",
-        loginReady: "הכניסה הצליחה. גרסת הניסיון פעילה."
+        loginRequired: "יש להזין אימייל פעם אחת כדי להתחיל.",
+        emailInvalid: "צריך להזין אימייל תקין.",
+        loggingIn: "שומר אימייל...",
+        loginFailed: "לא ניתן לשמור את האימייל כרגע.",
+        loginReady: "האימייל נשמר."
       },
       en: {
         dir: "ltr",
@@ -519,9 +515,7 @@
         locationLabel: "Location",
         emailLabel: "Email",
         emailPlaceholder: "Email",
-        passwordLabel: "Password",
-        passwordPlaceholder: "Password",
-        loginBtn: "Start trial",
+        loginBtn: "Confirm email",
         cameraAria: "Camera",
         previewEmpty: "The photo will appear here",
         captureBtn: "Capture",
@@ -551,10 +545,11 @@
         trialLastDay: "Trial version: last day of use. Available until {date}.",
         trialExpired: "The trial period has ended. App use is limited.",
         trialBlocked: "The trial period has ended. This action is disabled.",
-        loginRequired: "Sign in to start the trial.",
-        loggingIn: "Signing in...",
-        loginFailed: "Sign-in failed. Check email and password.",
-        loginReady: "Sign-in successful. Trial is active."
+        loginRequired: "Enter your email once to start.",
+        emailInvalid: "Enter a valid email address.",
+        loggingIn: "Saving email...",
+        loginFailed: "Could not save the email right now.",
+        loginReady: "Email saved."
       }
     };
 
@@ -602,7 +597,7 @@
     });
 
     accessLoginBtn.addEventListener("click", async () => {
-      await signInForTrial();
+      await registerEmailForTrial();
     });
 
     cameraBtn.addEventListener("click", async () => {
@@ -674,6 +669,7 @@
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
       statusEl.textContent = "";
+      logUsage("createImageCount");
     });
 
     downloadLink.addEventListener("click", () => {
@@ -689,6 +685,7 @@
       downloadLink.textContent = t("savedBtn");
       clearBtn.hidden = false;
       statusEl.textContent = t("saveStarted");
+      logUsage("saveCount");
     });
 
     clearBtn.addEventListener("click", () => {
@@ -776,6 +773,7 @@
         downloadLink.textContent = t("saveBtn");
         clearBtn.hidden = true;
         statusEl.textContent = t("photoCaptured");
+        logUsage("captureCount");
       };
       image.src = photoCanvas.toDataURL("image/jpeg", 0.92);
     }
@@ -816,7 +814,7 @@
       applyFirebaseLock(true);
 
       try {
-        const [{ initializeApp }, { getAuth, onAuthStateChanged, signInWithEmailAndPassword }, firestoreModule] = await Promise.all([
+        const [{ initializeApp }, { getAuth, onAuthStateChanged, signInAnonymously }, firestoreModule] = await Promise.all([
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"),
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"),
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
@@ -825,19 +823,21 @@
         const app = initializeApp(firebaseConfig.config);
         firebaseServices = {
           auth: getAuth(app),
-          signInWithEmailAndPassword,
+          signInAnonymously,
           firestore: firestoreModule,
           db: firestoreModule.getFirestore(app),
           trialDays: firebaseConfig.trialDays || 7
         };
 
         onAuthStateChanged(firebaseServices.auth, async (user) => {
-          if (user) {
-            await loadOrCreateFirebaseTrial(user);
+          const savedEmail = localStorage.getItem("buildingPhotoUserEmail") || "";
+          if (user && savedEmail && firebaseTrialLoadedUser !== user.uid) {
+            currentUserEmail = savedEmail;
+            await loadOrCreateFirebaseTrial(user, savedEmail);
           } else {
             trialState = null;
-            accessPanel.classList.add("visible");
             trialNotice.textContent = t("loginRequired");
+            accessPanel.classList.add("visible");
             applyFirebaseLock(true);
           }
         });
@@ -846,7 +846,13 @@
       }
     }
 
-    async function signInForTrial() {
+    async function registerEmailForTrial() {
+      const email = accessEmail.value.trim().toLowerCase();
+      if (!isValidEmail(email)) {
+        accessNote.textContent = t("emailInvalid");
+        return;
+      }
+
       if (!firebaseServices) {
         accessNote.textContent = "Firebase is not ready.";
         return;
@@ -854,21 +860,29 @@
 
       try {
         accessNote.textContent = t("loggingIn");
-        await firebaseServices.signInWithEmailAndPassword(firebaseServices.auth, accessEmail.value.trim(), accessPassword.value);
+        localStorage.setItem("buildingPhotoUserEmail", email);
+        currentUserEmail = email;
+        const credential = firebaseServices.auth.currentUser
+          ? { user: firebaseServices.auth.currentUser }
+          : await firebaseServices.signInAnonymously(firebaseServices.auth);
+        await loadOrCreateFirebaseTrial(credential.user, email);
       } catch (error) {
         accessNote.textContent = t("loginFailed");
       }
     }
 
-    async function loadOrCreateFirebaseTrial(user) {
+    async function loadOrCreateFirebaseTrial(user, email) {
       const {
         doc,
         getDoc,
         setDoc,
+        updateDoc,
+        increment,
         Timestamp,
         serverTimestamp
       } = firebaseServices.firestore;
       const trialRef = doc(firebaseServices.db, "buildingPhotoTrials", user.uid);
+      firebaseTrialLoadedUser = user.uid;
       const snapshot = await getDoc(trialRef);
       let startsAt;
       let expiresAt;
@@ -877,25 +891,55 @@
         const data = snapshot.data();
         startsAt = data.startsAt.toMillis();
         expiresAt = data.expiresAt.toMillis();
+        await updateDoc(trialRef, {
+          email,
+          lastSeenAt: serverTimestamp(),
+          openCount: increment(1)
+        });
       } else {
         startsAt = Date.now();
         expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
         await setDoc(trialRef, {
           uid: user.uid,
-          email: user.email || "",
+          email,
           startsAt: Timestamp.fromMillis(startsAt),
           expiresAt: Timestamp.fromMillis(expiresAt),
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          lastSeenAt: serverTimestamp(),
+          openCount: 1,
+          captureCount: 0,
+          createImageCount: 0,
+          saveCount: 0
         });
       }
 
       trialState = { start: startsAt, expiresAt };
-      accessPassword.value = "";
       accessNote.textContent = t("loginReady");
       accessPanel.classList.remove("visible");
       updateTrialNotice();
       applyTrialLock();
       applyFirebaseLock(isTrialExpired());
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    async function logUsage(fieldName) {
+      if (!firebaseMode || !firebaseServices || !firebaseServices.auth.currentUser || isTrialExpired()) {
+        return;
+      }
+
+      try {
+        const { doc, updateDoc, increment, serverTimestamp } = firebaseServices.firestore;
+        const trialRef = doc(firebaseServices.db, "buildingPhotoTrials", firebaseServices.auth.currentUser.uid);
+        await updateDoc(trialRef, {
+          [fieldName]: increment(1),
+          lastSeenAt: serverTimestamp()
+        });
+      } catch (error) {
+        // Usage logging must never interrupt the photo workflow.
+      }
     }
 
     function applyFirebaseLock(locked) {
@@ -928,6 +972,10 @@
       const daysLeft = getTrialDaysLeft();
 
       trialNotice.classList.toggle("expired", isTrialExpired());
+      if (firebaseMode && !isTrialExpired()) {
+        trialNotice.textContent = "";
+        return;
+      }
       if (isTrialExpired()) {
         trialNotice.textContent = t("trialExpired");
       } else if (daysLeft <= 1) {
