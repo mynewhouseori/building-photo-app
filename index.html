@@ -128,14 +128,6 @@
       accent-color: #f97316;
     }
 
-    .photo-input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
-    }
-
     .camera-icon-btn {
       min-height: 42px;
       border: 1px solid rgba(255, 255, 255, .62);
@@ -185,13 +177,15 @@
     }
 
     .preview img,
+    .preview video,
     .preview canvas {
       width: 100%;
       height: 100%;
       display: block;
     }
 
-    .preview img {
+    .preview img,
+    .preview video {
       object-fit: cover;
     }
 
@@ -316,8 +310,8 @@
       </div>
 
       <div class="camera">
-        <input id="photoInput" class="photo-input" type="file" accept="image/*" capture="environment" hidden>
         <div id="preview" class="preview">כאן תופיע התמונה</div>
+        <button id="captureBtn" class="clear-btn" type="button" hidden>צלם</button>
         <div class="actions">
           <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true">שמירה</a>
@@ -330,49 +324,25 @@
   </main>
 
   <script>
-    const photoInput = document.getElementById("photoInput");
     const cameraBtn = document.getElementById("cameraBtn");
+    const captureBtn = document.getElementById("captureBtn");
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
     const clearBtn = document.getElementById("clearBtn");
     const statusEl = document.getElementById("status");
     let selectedImage = null;
+    let cameraStream = null;
+    let liveVideo = null;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
-    cameraBtn.addEventListener("click", () => {
-      photoInput.click();
+    cameraBtn.addEventListener("click", async () => {
+      await startCamera();
     });
 
-    photoInput.addEventListener("change", () => {
-      const file = photoInput.files && photoInput.files[0];
-      if (!file) {
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const image = new Image();
-        image.onload = () => {
-          selectedImage = image;
-          preview.innerHTML = "";
-          preview.classList.remove("final-preview");
-          preview.appendChild(image.cloneNode());
-          createBtn.disabled = false;
-          createBtn.classList.remove("done");
-          createBtn.textContent = "צור תמונה";
-          downloadLink.href = "#";
-          downloadLink.download = "building-photo-report.png";
-          downloadLink.setAttribute("aria-disabled", "true");
-          downloadLink.classList.remove("saved");
-          downloadLink.textContent = "שמירה";
-          clearBtn.hidden = true;
-          statusEl.textContent = "התמונה נטענה. אפשר ליצור תמונה עם הפרטים.";
-        };
-        image.src = reader.result;
-      };
-      reader.readAsDataURL(file);
+    captureBtn.addEventListener("click", () => {
+      capturePhoto();
     });
 
     createBtn.addEventListener("click", () => {
@@ -420,11 +390,12 @@
       document.getElementById("photographer").value = "";
       document.getElementById("notes").value = "";
       document.getElementById("dateTimeCheck").checked = false;
-      photoInput.value = "";
+      stopCamera();
       selectedImage = null;
 
       preview.innerHTML = "כאן תופיע התמונה";
       preview.classList.remove("final-preview");
+      captureBtn.hidden = true;
       createBtn.disabled = true;
       createBtn.classList.remove("done");
       createBtn.textContent = "צור תמונה";
@@ -436,6 +407,78 @@
       clearBtn.hidden = true;
       statusEl.textContent = "המסך נוקה";
     });
+
+    async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        statusEl.textContent = "המצלמה לא נתמכת בדפדפן הזה.";
+        return;
+      }
+
+      try {
+        stopCamera();
+        statusEl.textContent = "פותח מצלמה...";
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+
+        liveVideo = document.createElement("video");
+        liveVideo.autoplay = true;
+        liveVideo.playsInline = true;
+        liveVideo.muted = true;
+        liveVideo.srcObject = cameraStream;
+
+        preview.innerHTML = "";
+        preview.classList.remove("final-preview");
+        preview.appendChild(liveVideo);
+        captureBtn.hidden = false;
+        createBtn.disabled = true;
+        statusEl.textContent = "המצלמה פתוחה. לחץ צלם.";
+      } catch (error) {
+        statusEl.textContent = "לא ניתן לפתוח מצלמה. צריך לאשר הרשאת מצלמה בדפדפן.";
+      }
+    }
+
+    function capturePhoto() {
+      if (!liveVideo || !liveVideo.videoWidth) {
+        statusEl.textContent = "המצלמה עדיין נטענת. נסה שוב בעוד רגע.";
+        return;
+      }
+
+      const photoCanvas = document.createElement("canvas");
+      photoCanvas.width = liveVideo.videoWidth;
+      photoCanvas.height = liveVideo.videoHeight;
+      photoCanvas.getContext("2d").drawImage(liveVideo, 0, 0, photoCanvas.width, photoCanvas.height);
+
+      const image = new Image();
+      image.onload = () => {
+        selectedImage = image;
+        stopCamera();
+        preview.innerHTML = "";
+        preview.classList.remove("final-preview");
+        preview.appendChild(image.cloneNode());
+        captureBtn.hidden = true;
+        createBtn.disabled = false;
+        createBtn.classList.remove("done");
+        createBtn.textContent = "צור תמונה";
+        downloadLink.href = "#";
+        downloadLink.download = "building-photo-report.png";
+        downloadLink.setAttribute("aria-disabled", "true");
+        downloadLink.classList.remove("saved");
+        downloadLink.textContent = "שמירה";
+        clearBtn.hidden = true;
+        statusEl.textContent = "התמונה צולמה. אפשר ליצור תמונה עם הפרטים.";
+      };
+      image.src = photoCanvas.toDataURL("image/jpeg", 0.92);
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
+      }
+      liveVideo = null;
+    }
 
     function drawInfoPanel(ctx, width, height) {
       const panelHeight = 290;
