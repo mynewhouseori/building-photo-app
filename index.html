@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>מערך צילום לבניין</title>
+  <script src="./firebase-config.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -327,8 +328,34 @@
       color: #fee2e2;
     }
 
+    .access-panel {
+      display: none;
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+
+    .access-panel.visible {
+      display: grid;
+    }
+
+    .access-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .access-note {
+      min-height: 20px;
+      color: rgba(255, 255, 255, .9);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+    }
+
     @media (max-width: 380px) {
       .checks,
+      .access-grid,
       .actions {
         grid-template-columns: 1fr;
       }
@@ -346,6 +373,21 @@
     </div>
 
     <section class="panel">
+      <div id="accessPanel" class="access-panel">
+        <div class="access-grid">
+          <label>
+            <span data-i18n="emailLabel">אימייל</span>
+            <input id="accessEmail" type="email" autocomplete="email" data-i18n-placeholder="emailPlaceholder" placeholder="אימייל">
+          </label>
+          <label>
+            <span data-i18n="passwordLabel">סיסמה</span>
+            <input id="accessPassword" type="password" autocomplete="current-password" data-i18n-placeholder="passwordPlaceholder" placeholder="סיסמה">
+          </label>
+        </div>
+        <button id="accessLoginBtn" class="clear-btn" type="button" data-i18n="loginBtn">כניסה לגרסת ניסיון</button>
+        <div id="accessNote" class="access-note"></div>
+      </div>
+
       <div class="fields">
         <label>
           <span data-i18n="siteLabel">אתר</span>
@@ -389,6 +431,11 @@
     const captureBtn = document.getElementById("captureBtn");
     const locationCheck = document.getElementById("locationCheck");
     const dateTimeCheck = document.getElementById("dateTimeCheck");
+    const accessPanel = document.getElementById("accessPanel");
+    const accessEmail = document.getElementById("accessEmail");
+    const accessPassword = document.getElementById("accessPassword");
+    const accessLoginBtn = document.getElementById("accessLoginBtn");
+    const accessNote = document.getElementById("accessNote");
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
@@ -401,6 +448,8 @@
     let currentLang = "he";
     let currentAddress = "";
     let trialState = null;
+    let firebaseMode = false;
+    let firebaseServices = null;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -417,6 +466,11 @@
         notesPlaceholder: "הערות שיופיעו על התמונה",
         dateTimeLabel: "תאריך ושעה",
         locationLabel: "מיקום",
+        emailLabel: "אימייל",
+        emailPlaceholder: "אימייל",
+        passwordLabel: "סיסמה",
+        passwordPlaceholder: "סיסמה",
+        loginBtn: "כניסה לגרסת ניסיון",
         cameraAria: "צילום",
         previewEmpty: "כאן תופיע התמונה",
         captureBtn: "צלם",
@@ -445,7 +499,11 @@
         trialActive: "גרסת ניסיון: נותרו {days} ימים. שימוש עד {date}.",
         trialLastDay: "גרסת ניסיון: היום האחרון לשימוש. שימוש עד {date}.",
         trialExpired: "תקופת הניסיון הסתיימה. השימוש באפליקציה מוגבל.",
-        trialBlocked: "תקופת הניסיון הסתיימה. לא ניתן לבצע פעולה זו."
+        trialBlocked: "תקופת הניסיון הסתיימה. לא ניתן לבצע פעולה זו.",
+        loginRequired: "יש להתחבר כדי להפעיל את גרסת הניסיון.",
+        loggingIn: "מתחבר...",
+        loginFailed: "הכניסה נכשלה. בדוק אימייל וסיסמה.",
+        loginReady: "הכניסה הצליחה. גרסת הניסיון פעילה."
       },
       en: {
         dir: "ltr",
@@ -459,6 +517,11 @@
         notesPlaceholder: "Notes to appear on the image",
         dateTimeLabel: "Date and time",
         locationLabel: "Location",
+        emailLabel: "Email",
+        emailPlaceholder: "Email",
+        passwordLabel: "Password",
+        passwordPlaceholder: "Password",
+        loginBtn: "Start trial",
         cameraAria: "Camera",
         previewEmpty: "The photo will appear here",
         captureBtn: "Capture",
@@ -487,7 +550,11 @@
         trialActive: "Trial version: {days} days left. Available until {date}.",
         trialLastDay: "Trial version: last day of use. Available until {date}.",
         trialExpired: "The trial period has ended. App use is limited.",
-        trialBlocked: "The trial period has ended. This action is disabled."
+        trialBlocked: "The trial period has ended. This action is disabled.",
+        loginRequired: "Sign in to start the trial.",
+        loggingIn: "Signing in...",
+        loginFailed: "Sign-in failed. Check email and password.",
+        loginReady: "Sign-in successful. Trial is active."
       }
     };
 
@@ -524,11 +591,18 @@
       if (downloadLink.classList.contains("saved")) {
         downloadLink.textContent = t("savedBtn");
       }
+      if (firebaseMode && !trialState) {
+        trialNotice.textContent = t("loginRequired");
+      }
       updateTrialNotice();
     }
 
     document.querySelectorAll(".lang-btn").forEach((button) => {
       button.addEventListener("click", () => setLanguage(button.dataset.lang));
+    });
+
+    accessLoginBtn.addEventListener("click", async () => {
+      await signInForTrial();
     });
 
     cameraBtn.addEventListener("click", async () => {
@@ -715,6 +789,12 @@
     }
 
     function initializeTrial() {
+      const firebaseConfig = window.BUILDING_PHOTO_FIREBASE || {};
+      if (firebaseConfig.enabled) {
+        initializeFirebaseTrial(firebaseConfig);
+        return;
+      }
+
       const key = "buildingPhotoTrialStart";
       let start = Number(localStorage.getItem(key));
 
@@ -727,6 +807,103 @@
       trialState = { start, expiresAt };
       updateTrialNotice();
       applyTrialLock();
+    }
+
+    async function initializeFirebaseTrial(firebaseConfig) {
+      firebaseMode = true;
+      accessPanel.classList.add("visible");
+      trialNotice.textContent = t("loginRequired");
+      applyFirebaseLock(true);
+
+      try {
+        const [{ initializeApp }, { getAuth, onAuthStateChanged, signInWithEmailAndPassword }, firestoreModule] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"),
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
+        ]);
+
+        const app = initializeApp(firebaseConfig.config);
+        firebaseServices = {
+          auth: getAuth(app),
+          signInWithEmailAndPassword,
+          firestore: firestoreModule,
+          db: firestoreModule.getFirestore(app),
+          trialDays: firebaseConfig.trialDays || 7
+        };
+
+        onAuthStateChanged(firebaseServices.auth, async (user) => {
+          if (user) {
+            await loadOrCreateFirebaseTrial(user);
+          } else {
+            trialState = null;
+            accessPanel.classList.add("visible");
+            trialNotice.textContent = t("loginRequired");
+            applyFirebaseLock(true);
+          }
+        });
+      } catch (error) {
+        accessNote.textContent = "Firebase configuration is not ready.";
+      }
+    }
+
+    async function signInForTrial() {
+      if (!firebaseServices) {
+        accessNote.textContent = "Firebase is not ready.";
+        return;
+      }
+
+      try {
+        accessNote.textContent = t("loggingIn");
+        await firebaseServices.signInWithEmailAndPassword(firebaseServices.auth, accessEmail.value.trim(), accessPassword.value);
+      } catch (error) {
+        accessNote.textContent = t("loginFailed");
+      }
+    }
+
+    async function loadOrCreateFirebaseTrial(user) {
+      const {
+        doc,
+        getDoc,
+        setDoc,
+        Timestamp,
+        serverTimestamp
+      } = firebaseServices.firestore;
+      const trialRef = doc(firebaseServices.db, "buildingPhotoTrials", user.uid);
+      const snapshot = await getDoc(trialRef);
+      let startsAt;
+      let expiresAt;
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        startsAt = data.startsAt.toMillis();
+        expiresAt = data.expiresAt.toMillis();
+      } else {
+        startsAt = Date.now();
+        expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
+        await setDoc(trialRef, {
+          uid: user.uid,
+          email: user.email || "",
+          startsAt: Timestamp.fromMillis(startsAt),
+          expiresAt: Timestamp.fromMillis(expiresAt),
+          createdAt: serverTimestamp()
+        });
+      }
+
+      trialState = { start: startsAt, expiresAt };
+      accessPassword.value = "";
+      accessNote.textContent = t("loginReady");
+      accessPanel.classList.remove("visible");
+      updateTrialNotice();
+      applyTrialLock();
+      applyFirebaseLock(isTrialExpired());
+    }
+
+    function applyFirebaseLock(locked) {
+      cameraBtn.disabled = locked;
+      createBtn.disabled = locked || !selectedImage;
+      downloadLink.setAttribute("aria-disabled", locked ? "true" : downloadLink.getAttribute("aria-disabled"));
+      locationCheck.disabled = locked;
+      dateTimeCheck.disabled = locked;
     }
 
     function getTrialDaysLeft() {
