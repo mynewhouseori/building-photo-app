@@ -128,6 +128,34 @@
       accent-color: #f97316;
     }
 
+    .photo-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .camera-icon-btn {
+      min-height: 42px;
+      border: 1px solid rgba(255, 255, 255, .62);
+      border-radius: 10px;
+      background: transparent;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, .16);
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+    }
+
+    .camera-icon {
+      font-size: 23px;
+      line-height: 1;
+    }
+
     .camera {
       margin-top: 12px;
       display: grid;
@@ -282,13 +310,13 @@
 
       <div class="checks">
         <label class="check"><input id="dateTimeCheck" type="checkbox"> תאריך ושעה</label>
+        <button id="cameraBtn" class="camera-icon-btn" type="button" aria-label="צילום">
+          <span class="camera-icon" aria-hidden="true">📷</span>
+        </button>
       </div>
 
       <div class="camera">
-        <label>
-          צילום
-          <input id="photoInput" type="file" accept="image/*" capture="environment">
-        </label>
+        <input id="photoInput" class="photo-input" type="file" accept="image/*" capture="environment" hidden>
         <div id="preview" class="preview">כאן תופיע התמונה</div>
         <div class="actions">
           <button id="createBtn" class="btn" type="button" disabled>צור תמונה</button>
@@ -303,6 +331,7 @@
 
   <script>
     const photoInput = document.getElementById("photoInput");
+    const cameraBtn = document.getElementById("cameraBtn");
     const preview = document.getElementById("preview");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
@@ -311,6 +340,10 @@
     let selectedImage = null;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
+
+    cameraBtn.addEventListener("click", () => {
+      photoInput.click();
+    });
 
     photoInput.addEventListener("change", () => {
       const file = photoInput.files && photoInput.files[0];
