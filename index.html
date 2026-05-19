@@ -732,10 +732,7 @@
         return;
       }
       if (locationCheck.checked) {
-        const ok = await requestAddress();
-        if (!ok) {
-          locationCheck.checked = false;
-        }
+        await requestAddress();
       } else {
         currentAddress = "";
       }
@@ -753,14 +750,16 @@
 
       if (locationCheck.checked && !currentAddress) {
         statusEl.textContent = t("locationLoading");
-        requestAddress().then((ok) => {
-          if (ok) {
-            createBtn.click();
-          }
+        requestAddress().then(() => {
+          createFinalImage();
         });
         return;
       }
 
+      createFinalImage();
+    });
+
+    function createFinalImage() {
       const canvas = document.createElement("canvas");
       const width = 1400;
       const height = 1800;
@@ -781,9 +780,11 @@
       downloadLink.setAttribute("aria-disabled", "false");
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
-      statusEl.textContent = "";
+      if (!locationCheck.checked || currentAddress) {
+        statusEl.textContent = "";
+      }
       logUsage("createImageCount");
-    });
+    }
 
     downloadLink.addEventListener("click", () => {
       if (isTrialExpired()) {
