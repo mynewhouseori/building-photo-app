@@ -560,6 +560,8 @@
     let firebaseServices = null;
     let currentUserEmail = "";
     let firebaseTrialLoadedUser = "";
+    let generatedImageBlob = null;
+    let generatedImageFileName = "";
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -777,7 +779,9 @@
       preview.classList.add("final-preview");
       preview.appendChild(canvas);
       downloadLink.href = dataUrl;
-      downloadLink.download = createDownloadFileName();
+      generatedImageFileName = createDownloadFileName();
+      generatedImageBlob = dataUrlToBlob(dataUrl);
+      downloadLink.download = generatedImageFileName;
       downloadLink.setAttribute("aria-disabled", "false");
       downloadLink.classList.remove("saved");
       downloadLink.textContent = t("saveBtn");
@@ -789,14 +793,23 @@
       logUsage("createImageCount");
     }
 
-    downloadLink.addEventListener("click", (event) => {
+    downloadLink.addEventListener("click", async (event) => {
       if (isTrialExpired()) {
+        event.preventDefault();
         statusEl.textContent = t("trialBlocked");
         return;
       }
       if (downloadLink.getAttribute("aria-disabled") === "true") {
         event.preventDefault();
         return;
+      }
+
+      if (shouldUseShareSheet()) {
+        event.preventDefault();
+        const shared = await shareGeneratedImage();
+        if (!shared) {
+          return;
+        }
       }
 
       downloadLink.classList.add("saved");
@@ -816,6 +829,8 @@
       currentAddress = "";
       stopCamera();
       selectedImage = null;
+      generatedImageBlob = null;
+      generatedImageFileName = "";
 
       preview.innerHTML = t("previewEmpty");
       preview.classList.remove("final-preview");
@@ -877,6 +892,8 @@
       const image = new Image();
       image.onload = () => {
         selectedImage = image;
+        generatedImageBlob = null;
+        generatedImageFileName = "";
         stopCamera();
         preview.innerHTML = "";
         preview.classList.remove("final-preview");
@@ -1238,6 +1255,48 @@
       ].join("");
 
       return `building-photo-report-${stamp}.png`;
+    }
+
+    function dataUrlToBlob(dataUrl) {
+      const [meta, base64] = dataUrl.split(",");
+      const mime = (meta.match(/data:(.*?);base64/) || [])[1] || "image/png";
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      return new Blob([bytes], { type: mime });
+    }
+
+    function shouldUseShareSheet() {
+      return isIOS() && Boolean(generatedImageBlob) && canShareGeneratedFile();
+    }
+
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function canShareGeneratedFile() {
+      if (!navigator.share || !navigator.canShare || !window.File || !generatedImageBlob) {
+        return false;
+      }
+
+      const file = new File([generatedImageBlob], generatedImageFileName || createDownloadFileName(), { type: "image/png" });
+      return navigator.canShare({ files: [file] });
+    }
+
+    async function shareGeneratedImage() {
+      try {
+        const file = new File([generatedImageBlob], generatedImageFileName || createDownloadFileName(), { type: "image/png" });
+        await navigator.share({
+          files: [file],
+          title: t("title")
+        });
+        return true;
+      } catch (error) {
+        return false;
+      }
     }
 
     function drawWatermark(ctx) {
