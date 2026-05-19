@@ -383,6 +383,10 @@
       display: none;
     }
 
+    .btn[hidden] {
+      display: none;
+    }
+
     .btn:disabled,
     .download[aria-disabled="true"] {
       opacity: .5;
@@ -787,6 +791,7 @@
       downloadLink.textContent = t("saveBtn");
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
+      createBtn.hidden = true;
       if (!locationCheck.checked || currentAddress) {
         statusEl.textContent = "";
       }
@@ -835,6 +840,7 @@
       preview.innerHTML = t("previewEmpty");
       preview.classList.remove("final-preview");
       captureBtn.hidden = true;
+      createBtn.hidden = false;
       createBtn.disabled = true;
       createBtn.classList.remove("done");
       createBtn.textContent = t("createBtn");
@@ -899,6 +905,7 @@
         preview.classList.remove("final-preview");
         preview.appendChild(image.cloneNode());
         captureBtn.hidden = true;
+        createBtn.hidden = false;
         createBtn.disabled = false;
         createBtn.classList.remove("done");
         createBtn.textContent = t("createBtn");
