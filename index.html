@@ -10,12 +10,21 @@
       box-sizing: border-box;
     }
 
+    html {
+      width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       margin: 0;
+      width: 100%;
       min-height: 100vh;
+      min-height: 100svh;
       font-family: "Segoe UI", Tahoma, Arial, sans-serif;
       color: #101827;
       background: url("mobile-background01-logo-centered-small-up.png") center top / cover no-repeat;
+      -webkit-text-size-adjust: 100%;
+      overflow-x: hidden;
     }
 
     button,
@@ -27,11 +36,13 @@
     .app {
       width: min(100%, 480px);
       min-height: 100vh;
+      min-height: 100svh;
       margin: 0 auto;
-      padding: 28px 16px 24px;
+      padding: max(18px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+      overflow-x: hidden;
     }
 
     .rights {
@@ -48,6 +59,8 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      width: 100%;
+      min-width: 0;
     }
 
     .lang-picker {
@@ -85,12 +98,18 @@
     h1 {
       margin: 0;
       color: #ffffff;
-      font-size: 28px;
+      font-size: 26px;
       line-height: 1.2;
       text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
+      min-width: 0;
+      flex: 1 1 auto;
+      text-align: end;
+      overflow-wrap: break-word;
     }
 
     .panel {
+      width: 100%;
+      min-width: 0;
       margin-top: auto;
       border-radius: 16px;
       background: transparent;
@@ -102,6 +121,8 @@
     .fields {
       display: grid;
       gap: 10px;
+      width: 100%;
+      min-width: 0;
     }
 
     label {
@@ -111,6 +132,8 @@
       font-weight: 700;
       color: #ffffff;
       text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+      min-width: 0;
+      text-align: center;
     }
 
     input,
@@ -124,6 +147,8 @@
       padding: 10px 11px;
       outline: none;
       box-shadow: 0 8px 18px rgba(0, 0, 0, .16);
+      min-width: 0;
+      text-align: center;
     }
 
     input::placeholder,
@@ -144,32 +169,85 @@
 
     .checks {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 9px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 54px;
+      align-items: center;
+      gap: 7px;
       margin-top: 10px;
+      width: 100%;
+      min-width: 0;
     }
 
     .check {
-      min-height: 42px;
+      position: relative;
+      min-height: 44px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 2px;
+      justify-content: center;
+      gap: 7px;
+      padding: 7px 6px;
       border: 0;
       border-radius: 0;
       background: transparent;
       color: #ffffff;
       box-shadow: none;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .check input {
-      width: 19px;
-      min-height: 19px;
-      accent-color: #f97316;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .check-box {
+      width: 23px;
+      height: 23px;
+      border: 2px solid rgba(255, 255, 255, .9);
+      border-radius: 7px;
+      background: rgba(2, 6, 23, .14);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, .24), inset 0 1px 0 rgba(255, 255, 255, .22);
+    }
+
+    .check input:checked + .check-box {
+      background: #f97316;
+      border-color: #ffffff;
+    }
+
+    .check input:checked + .check-box::after {
+      content: "";
+      width: 6px;
+      height: 11px;
+      border: solid #ffffff;
+      border-width: 0 3px 3px 0;
+      transform: rotate(45deg) translateY(-1px);
+    }
+
+    .check input:disabled + .check-box {
+      opacity: .45;
+    }
+
+    .check-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      line-height: 1.15;
     }
 
     .camera-icon-btn {
-      min-height: 42px;
+      min-height: 44px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -181,6 +259,8 @@
       cursor: pointer;
       box-shadow: none;
       text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .camera-icon {
@@ -192,6 +272,8 @@
       margin-top: 12px;
       display: grid;
       gap: 10px;
+      width: 100%;
+      min-width: 0;
     }
 
     .preview {
@@ -309,9 +391,12 @@
 
     .status {
       min-height: 20px;
-      color: #475569;
+      color: rgba(255, 255, 255, .92);
       font-size: 13px;
+      font-weight: 700;
       line-height: 1.5;
+      text-align: center;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
     }
 
     .trial-notice {
@@ -354,10 +439,38 @@
     }
 
     @media (max-width: 380px) {
-      .checks,
       .access-grid,
       .actions {
         grid-template-columns: 1fr;
+      }
+
+      .app {
+        padding-left: 12px;
+        padding-right: 12px;
+        gap: 10px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .checks {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 48px;
+        gap: 5px;
+      }
+
+      .check {
+        font-size: 13px;
+        padding-inline: 3px;
+      }
+
+      .check-box {
+        width: 21px;
+        height: 21px;
+      }
+
+      .camera-icon {
+        font-size: 31px;
       }
     }
   </style>
@@ -400,8 +513,8 @@
       </div>
 
       <div class="checks">
-        <label class="check"><input id="dateTimeCheck" type="checkbox"> <span data-i18n="dateTimeLabel">תאריך ושעה</span></label>
-        <label class="check"><input id="locationCheck" type="checkbox"> <span data-i18n="locationLabel">מיקום</span></label>
+        <label class="check"><input id="dateTimeCheck" type="checkbox"><span class="check-box" aria-hidden="true"></span><span class="check-text" data-i18n="dateTimeLabel">תאריך ושעה</span></label>
+        <label class="check"><input id="locationCheck" type="checkbox"><span class="check-box" aria-hidden="true"></span><span class="check-text" data-i18n="locationLabel">מיקום</span></label>
         <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
           <span class="camera-icon" aria-hidden="true">📷</span>
         </button>
@@ -456,11 +569,11 @@
         lang: "he",
         title: "מערך צילום לבניין",
         siteLabel: "אתר",
-        sitePlaceholder: "שם האתר או כתובת הבניין",
+        sitePlaceholder: "שם האתר",
         photographerLabel: "צלם",
         photographerPlaceholder: "שם הצלם",
         notesLabel: "הערות",
-        notesPlaceholder: "הערות שיופיעו על התמונה",
+        notesPlaceholder: "הערות לתמונה",
         dateTimeLabel: "תאריך ושעה",
         locationLabel: "מיקום",
         emailLabel: "אימייל",
@@ -506,11 +619,11 @@
         lang: "en",
         title: "Building Photo Setup",
         siteLabel: "Site",
-        sitePlaceholder: "Site name or building address",
+        sitePlaceholder: "Site name",
         photographerLabel: "Photographer",
         photographerPlaceholder: "Photographer name",
         notesLabel: "Notes",
-        notesPlaceholder: "Notes to appear on the image",
+        notesPlaceholder: "Photo notes",
         dateTimeLabel: "Date and time",
         locationLabel: "Location",
         emailLabel: "Email",
