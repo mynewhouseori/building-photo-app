@@ -715,6 +715,7 @@
 
     cameraBtn.addEventListener("click", async () => {
       if (isTrialExpired()) {
+        event.preventDefault();
         statusEl.textContent = t("trialBlocked");
         return;
       }
@@ -778,6 +779,8 @@
       downloadLink.href = dataUrl;
       downloadLink.download = createDownloadFileName();
       downloadLink.setAttribute("aria-disabled", "false");
+      downloadLink.classList.remove("saved");
+      downloadLink.textContent = t("saveBtn");
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
       if (!locationCheck.checked || currentAddress) {
@@ -786,17 +789,19 @@
       logUsage("createImageCount");
     }
 
-    downloadLink.addEventListener("click", () => {
+    downloadLink.addEventListener("click", (event) => {
       if (isTrialExpired()) {
         statusEl.textContent = t("trialBlocked");
         return;
       }
       if (downloadLink.getAttribute("aria-disabled") === "true") {
+        event.preventDefault();
         return;
       }
 
       downloadLink.classList.add("saved");
       downloadLink.textContent = t("savedBtn");
+      downloadLink.setAttribute("aria-disabled", "true");
       clearBtn.hidden = false;
       statusEl.textContent = t("saveStarted");
       logUsage("saveCount");
