@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <title>מערך צילום לבניין</title>
+  <title>צילום מתועד למניין</title>
   <script src="./firebase-config.js"></script>
   <style>
     * {
@@ -504,7 +504,7 @@
 <body>
   <main class="app">
     <div class="topbar">
-      <h1 data-i18n="title">מערך צילום לבניין</h1>
+      <h1 data-i18n="title">צילום מתועד למניין</h1>
       <div class="lang-picker" aria-label="בחירת שפה">
         <button class="lang-btn active" type="button" data-lang="he" aria-label="עברית">🇮🇱</button>
         <button class="lang-btn" type="button" data-lang="en" aria-label="English">🇺🇸</button>
@@ -596,7 +596,7 @@
       he: {
         dir: "rtl",
         lang: "he",
-        title: "מערך צילום לבניין",
+        title: "צילום מתועד למניין",
         siteLabel: "אתר",
         sitePlaceholder: "שם האתר",
         photographerLabel: "צלם",
@@ -646,7 +646,7 @@
       en: {
         dir: "ltr",
         lang: "en",
-        title: "Building Photo Setup",
+        title: "Documented Building Photo",
         siteLabel: "Site",
         sitePlaceholder: "Site name",
         photographerLabel: "Photographer",
@@ -1238,31 +1238,44 @@
     }
 
     function drawInfoPanel(ctx, width, height) {
-      const panelHeight = 290;
+      const panelHeight = 360;
       const top = height - panelHeight;
       ctx.fillStyle = "rgba(17, 24, 39, .5)";
       ctx.fillRect(0, top, width, panelHeight);
       ctx.fillStyle = "#f97316";
-      ctx.fillRect(0, top, width, 8);
+      ctx.fillRect(0, top, width, 10);
 
-      ctx.direction = "rtl";
       ctx.direction = translations[currentLang].dir;
       ctx.textAlign = currentLang === "he" ? "right" : "left";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "700 40px Segoe UI, Arial, sans-serif";
-      const textX = currentLang === "he" ? width - 52 : 52;
-      ctx.fillText(t("title"), textX, top + 58);
+      ctx.font = "800 54px Segoe UI, Arial, sans-serif";
+      const margin = 58;
+      const titleX = currentLang === "he" ? width - margin : margin;
+      ctx.fillText(t("title"), titleX, top + 74);
 
-      const lines = buildLines();
-      ctx.font = "500 26px Segoe UI, Arial, sans-serif";
-      let y = top + 102;
-      lines.forEach((line) => {
-        wrapText(ctx, line, textX, y, width - 104, 34);
-        y += line.length > 48 ? 58 : 36;
+      const gap = 54;
+      const columnWidth = (width - margin * 2 - gap) / 2;
+      const columns = currentLang === "he"
+        ? [
+          { x: width - margin, y: top + 130 },
+          { x: width - margin - columnWidth - gap, y: top + 130 }
+        ]
+        : [
+          { x: margin, y: top + 130 },
+          { x: margin + columnWidth + gap, y: top + 130 }
+        ];
+
+      ctx.font = "700 34px Segoe UI, Arial, sans-serif";
+      buildInfoLines().forEach((line, index) => {
+        const column = columns[index % 2];
+        column.y += drawWrappedText(ctx, line, column.x, column.y, columnWidth, 42) + 14;
       });
+
+      ctx.font = "700 27px Segoe UI, Arial, sans-serif";
+      ctx.fillText(t("rights"), titleX, height - 34);
     }
 
-    function buildLines() {
+    function buildInfoLines() {
       const lines = [];
       addLine(lines, t("siteLabel"), "site");
       addLine(lines, t("photographerLabel"), "photographer");
@@ -1274,7 +1287,6 @@
         lines.push(`${t("locationLine")}: ${currentAddress}`);
       }
       addLine(lines, t("notesLabel"), "notes");
-      lines.push(t("rights"));
       return lines;
     }
 
@@ -1378,20 +1390,24 @@
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
     }
 
-    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
       const words = text.split(" ");
       let line = "";
+      let linesDrawn = 0;
       words.forEach((word) => {
         const testLine = line ? `${line} ${word}` : word;
         if (ctx.measureText(testLine).width > maxWidth && line) {
           ctx.fillText(line, x, y);
           line = word;
           y += lineHeight;
+          linesDrawn += 1;
         } else {
           line = testLine;
         }
       });
       ctx.fillText(line, x, y);
+      linesDrawn += 1;
+      return linesDrawn * lineHeight;
     }
 
     setLanguage("he");
