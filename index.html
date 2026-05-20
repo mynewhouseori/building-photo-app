@@ -169,7 +169,7 @@
 
     .checks {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 54px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: center;
       gap: 7px;
       margin-top: 10px;
@@ -247,7 +247,7 @@
     }
 
     .camera-icon-btn {
-      min-height: 44px;
+      min-height: 68px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -264,7 +264,7 @@
     }
 
     .camera-icon {
-      font-size: 35px;
+      font-size: 58px;
       line-height: 1;
     }
 
@@ -288,6 +288,10 @@
       color: rgba(255, 255, 255, .82);
       text-align: center;
       padding: 12px;
+    }
+
+    .preview[hidden] {
+      display: none;
     }
 
     .preview.final-preview {
@@ -383,8 +387,16 @@
       display: none;
     }
 
+    .camera-icon-btn[hidden] {
+      display: none;
+    }
+
     .btn[hidden] {
       display: none;
+    }
+
+    .actions.save-only {
+      grid-template-columns: 1fr;
     }
 
     .btn:disabled,
@@ -459,7 +471,7 @@
       }
 
       .checks {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 48px;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         gap: 5px;
       }
 
@@ -474,7 +486,7 @@
       }
 
       .camera-icon {
-        font-size: 31px;
+        font-size: 52px;
       }
     }
   </style>
@@ -519,15 +531,15 @@
       <div class="checks">
         <label class="check"><input id="dateTimeCheck" type="checkbox"><span class="check-box" aria-hidden="true"></span><span class="check-text" data-i18n="dateTimeLabel">תאריך ושעה</span></label>
         <label class="check"><input id="locationCheck" type="checkbox"><span class="check-box" aria-hidden="true"></span><span class="check-text" data-i18n="locationLabel">מיקום</span></label>
-        <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
-          <span class="camera-icon" aria-hidden="true">📷</span>
-        </button>
       </div>
 
       <div class="camera">
-        <div id="preview" class="preview" data-i18n="previewEmpty">כאן תופיע התמונה</div>
+        <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
+          <span class="camera-icon" aria-hidden="true">📷</span>
+        </button>
+        <div id="preview" class="preview" hidden></div>
         <button id="captureBtn" class="clear-btn" type="button" data-i18n="captureBtn" hidden>צלם</button>
-        <div class="actions">
+        <div id="actionRow" class="actions">
           <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
@@ -549,6 +561,7 @@
     const accessLoginBtn = document.getElementById("accessLoginBtn");
     const accessNote = document.getElementById("accessNote");
     const preview = document.getElementById("preview");
+    const actionRow = document.getElementById("actionRow");
     const createBtn = document.getElementById("createBtn");
     const downloadLink = document.getElementById("downloadLink");
     const clearBtn = document.getElementById("clearBtn");
@@ -696,9 +709,6 @@
         button.classList.toggle("active", button.dataset.lang === currentLang);
       });
 
-      if (!selectedImage && !cameraStream) {
-        preview.textContent = t("previewEmpty");
-      }
       if (createBtn.classList.contains("done")) {
         createBtn.textContent = t("createdBtn");
       }
@@ -780,8 +790,10 @@
 
       const dataUrl = canvas.toDataURL("image/png");
       preview.innerHTML = "";
+      preview.hidden = false;
       preview.classList.add("final-preview");
       preview.appendChild(canvas);
+      cameraBtn.hidden = true;
       downloadLink.href = dataUrl;
       generatedImageFileName = createDownloadFileName();
       generatedImageBlob = dataUrlToBlob(dataUrl);
@@ -792,6 +804,7 @@
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
       createBtn.hidden = true;
+      actionRow.classList.add("save-only");
       if (!locationCheck.checked || currentAddress) {
         statusEl.textContent = "";
       }
@@ -837,10 +850,13 @@
       generatedImageBlob = null;
       generatedImageFileName = "";
 
-      preview.innerHTML = t("previewEmpty");
+      preview.innerHTML = "";
+      preview.hidden = true;
       preview.classList.remove("final-preview");
+      cameraBtn.hidden = false;
       captureBtn.hidden = true;
       createBtn.hidden = false;
+      actionRow.classList.remove("save-only");
       createBtn.disabled = true;
       createBtn.classList.remove("done");
       createBtn.textContent = t("createBtn");
@@ -874,8 +890,10 @@
         liveVideo.srcObject = cameraStream;
 
         preview.innerHTML = "";
+        preview.hidden = false;
         preview.classList.remove("final-preview");
         preview.appendChild(liveVideo);
+        cameraBtn.hidden = true;
         captureBtn.hidden = false;
         createBtn.disabled = true;
         statusEl.textContent = t("cameraReady");
@@ -902,10 +920,13 @@
         generatedImageFileName = "";
         stopCamera();
         preview.innerHTML = "";
+        preview.hidden = false;
         preview.classList.remove("final-preview");
         preview.appendChild(image.cloneNode());
+        cameraBtn.hidden = true;
         captureBtn.hidden = true;
         createBtn.hidden = false;
+        actionRow.classList.remove("save-only");
         createBtn.disabled = false;
         createBtn.classList.remove("done");
         createBtn.textContent = t("createBtn");
