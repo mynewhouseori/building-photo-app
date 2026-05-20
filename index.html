@@ -549,8 +549,8 @@
         </button>
         <div id="preview" class="preview" hidden></div>
         <button id="captureBtn" class="clear-btn" type="button" data-i18n="captureBtn" hidden>צלם</button>
-        <div id="actionRow" class="actions">
-          <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled>צור תמונה</button>
+        <div id="actionRow" class="actions save-only">
+          <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled hidden>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
         <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה מסך</button>
@@ -739,7 +739,7 @@
       await registerEmailForTrial();
     });
 
-    cameraBtn.addEventListener("click", async () => {
+    cameraBtn.addEventListener("click", async (event) => {
       if (isTrialExpired()) {
         event.preventDefault();
         statusEl.textContent = t("trialBlocked");
@@ -766,6 +766,10 @@
     });
 
     createBtn.addEventListener("click", () => {
+      createImageFromCapturedPhoto();
+    });
+
+    function createImageFromCapturedPhoto() {
       if (isTrialExpired()) {
         statusEl.textContent = t("trialBlocked");
         return;
@@ -784,7 +788,7 @@
       }
 
       createFinalImage();
-    });
+    }
 
     function createFinalImage() {
       const canvas = document.createElement("canvas");
@@ -865,8 +869,8 @@
       preview.classList.remove("final-preview");
       cameraBtn.hidden = false;
       captureBtn.hidden = true;
-      createBtn.hidden = false;
-      actionRow.classList.remove("save-only");
+      createBtn.hidden = true;
+      actionRow.classList.add("save-only");
       createBtn.disabled = true;
       createBtn.classList.remove("done");
       createBtn.textContent = t("createBtn");
@@ -905,6 +909,8 @@
         preview.appendChild(liveVideo);
         cameraBtn.hidden = true;
         captureBtn.hidden = false;
+        createBtn.hidden = true;
+        actionRow.classList.add("save-only");
         createBtn.disabled = true;
         statusEl.textContent = t("cameraReady");
       } catch (error) {
@@ -935,9 +941,9 @@
         preview.appendChild(image.cloneNode());
         cameraBtn.hidden = true;
         captureBtn.hidden = true;
-        createBtn.hidden = false;
-        actionRow.classList.remove("save-only");
-        createBtn.disabled = false;
+        createBtn.hidden = true;
+        actionRow.classList.add("save-only");
+        createBtn.disabled = true;
         createBtn.classList.remove("done");
         createBtn.textContent = t("createBtn");
         downloadLink.href = "#";
@@ -946,8 +952,8 @@
         downloadLink.classList.remove("saved");
         downloadLink.textContent = t("saveBtn");
         clearBtn.hidden = true;
-        statusEl.textContent = t("photoCaptured");
         logUsage("captureCount");
+        createImageFromCapturedPhoto();
       };
       image.src = photoCanvas.toDataURL("image/jpeg", 0.92);
     }
