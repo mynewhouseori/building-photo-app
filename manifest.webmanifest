@@ -1,0 +1,28 @@
+{
+  "name": "צילום מתועד לבניין",
+  "short_name": "צילום מתועד",
+  "description": "אפליקציה לתיעוד תמונות באתר בנייה עם פרטי אתר, צלם, תאריך, שעה ומיקום.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "watermark-logo-transparent.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "watermark-logo-transparent.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

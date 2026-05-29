@@ -7,6 +7,10 @@ const port = 4280;
 const host = "127.0.0.1";
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
   ".png": "image/png"
 };
 
