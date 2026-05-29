@@ -2,6 +2,7 @@ const CACHE_NAME = "building-photo-app-v1";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./privacy-policy.html",
   "./firebase-config.js",
   "./manifest.webmanifest",
   "./mobile-background01-logo-centered-small-up.png",

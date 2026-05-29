@@ -1,0 +1,12 @@
+node_modules/
+www/
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/build/
+ios/App/Pods/
+ios/App/App.xcworkspace/
+ios/DerivedData/
+*.apk
+*.aab
+*.ipa
