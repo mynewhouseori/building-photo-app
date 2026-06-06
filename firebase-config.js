@@ -1,6 +1,7 @@
 window.BUILDING_PHOTO_FIREBASE = {
   enabled: true,
-  trialDays: 7,
+  trialDays: 30,
+  trialResetId: "2026-06-06-month-reset",
   config: {
     apiKey: "AIzaSyBmK011s1fYmLoguxwWB6FBk5sO8xbFKqs",
     authDomain: "building-photo-app.firebaseapp.com",

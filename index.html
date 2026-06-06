@@ -981,7 +981,7 @@
         localStorage.setItem(key, String(start));
       }
 
-      const expiresAt = start + 7 * 24 * 60 * 60 * 1000;
+      const expiresAt = start + 30 * 24 * 60 * 60 * 1000;
       trialState = { start, expiresAt };
       updateTrialNotice();
       applyTrialLock();
@@ -1006,7 +1006,8 @@
           signInAnonymously,
           firestore: firestoreModule,
           db: firestoreModule.getFirestore(app),
-          trialDays: firebaseConfig.trialDays || 7
+          trialDays: firebaseConfig.trialDays || 30,
+          trialResetId: firebaseConfig.trialResetId || ""
         };
 
         onAuthStateChanged(firebaseServices.auth, async (user) => {
@@ -1069,13 +1070,26 @@
 
       if (snapshot.exists()) {
         const data = snapshot.data();
-        startsAt = data.startsAt.toMillis();
-        expiresAt = data.expiresAt.toMillis();
-        await updateDoc(trialRef, {
-          email,
-          lastSeenAt: serverTimestamp(),
-          openCount: increment(1)
-        });
+        if (firebaseServices.trialResetId && data.trialResetId !== firebaseServices.trialResetId) {
+          startsAt = Date.now();
+          expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
+          await updateDoc(trialRef, {
+            email,
+            startsAt: Timestamp.fromMillis(startsAt),
+            expiresAt: Timestamp.fromMillis(expiresAt),
+            trialResetId: firebaseServices.trialResetId,
+            lastSeenAt: serverTimestamp(),
+            openCount: increment(1)
+          });
+        } else {
+          startsAt = data.startsAt.toMillis();
+          expiresAt = data.expiresAt.toMillis();
+          await updateDoc(trialRef, {
+            email,
+            lastSeenAt: serverTimestamp(),
+            openCount: increment(1)
+          });
+        }
       } else {
         startsAt = Date.now();
         expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
@@ -1084,6 +1098,7 @@
           email,
           startsAt: Timestamp.fromMillis(startsAt),
           expiresAt: Timestamp.fromMillis(expiresAt),
+          trialResetId: firebaseServices.trialResetId,
           createdAt: serverTimestamp(),
           lastSeenAt: serverTimestamp(),
           openCount: 1,

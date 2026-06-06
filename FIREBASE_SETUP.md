@@ -3,7 +3,7 @@
 This app can run in two modes:
 
 - Local mode: currently active while `firebase-config.js` has `enabled: false`.
-- Firebase mode: users enter an email once. The app silently uses Firebase Anonymous Authentication, stores the email on the device, starts a 7-day trial, and logs basic usage counters in Firestore.
+- Firebase mode: users enter an email once. The app silently uses Firebase Anonymous Authentication, stores the email on the device, starts a 30-day trial, and logs basic usage counters in Firestore.
 
 ## Recommended dedicated Firebase setup
 
@@ -36,6 +36,7 @@ Each document stores:
 - `email`
 - `startsAt`
 - `expiresAt`
+- `trialResetId`
 - `createdAt`
 - `lastSeenAt`
 - `openCount`
@@ -46,3 +47,7 @@ Each document stores:
 ## Notes
 
 This is intentionally simple. It is stronger than a browser-only trial because the start date and usage counters are stored in Firebase, but it is still not high-security licensing. A technical user who clears browser data can create a new anonymous identity.
+
+## June 2026 reset
+
+`trialResetId: "2026-06-06-month-reset"` gives every existing user one new 30-day period the next time they open the app. The Firestore rules allow this specific reset only once per user.
