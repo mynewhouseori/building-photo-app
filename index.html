@@ -962,6 +962,7 @@
         liveVideo.autoplay = true;
         liveVideo.playsInline = true;
         liveVideo.muted = true;
+        liveVideo.addEventListener("loadedmetadata", centerCameraPreview, { once: true });
         liveVideo.srcObject = cameraStream;
 
         preview.innerHTML = "";
