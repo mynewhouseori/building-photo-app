@@ -1,4 +1,4 @@
-const CACHE_NAME = "building-photo-app-v2-month-access";
+const CACHE_NAME = "building-photo-app-v3-additional-photo";
 const APP_SHELL = [
   "./",
   "./index.html",

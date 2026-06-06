@@ -567,7 +567,7 @@
           <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled hidden>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
-        <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה מסך</button>
+        <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה והתחל אתר חדש</button>
         <div id="trialNotice" class="trial-notice" aria-live="polite"></div>
         <div id="status" class="status" aria-live="polite"></div>
       </div>
@@ -629,10 +629,12 @@
         createdBtn: "התמונה נוצרה",
         saveBtn: "שמירה",
         savedBtn: "נשמר",
-        clearBtn: "נקה מסך",
+        additionalPhotoBtn: "📷 צילום נוסף",
+        clearBtn: "נקה והתחל אתר חדש",
         rights: "כל הזכויות שמורות",
         needPhoto: "צריך לצלם קודם.",
         saveStarted: "השמירה התחילה",
+        additionalPhotoReady: "הפרטים נשמרו. אפשר לצלם תמונה נוספת.",
         screenCleared: "המסך נוקה",
         cameraUnsupported: "המצלמה לא נתמכת בדפדפן הזה.",
         openingCamera: "פותח מצלמה...",
@@ -679,10 +681,12 @@
         createdBtn: "Image created",
         saveBtn: "Save",
         savedBtn: "Saved",
-        clearBtn: "Clear screen",
+        additionalPhotoBtn: "📷 Additional photo",
+        clearBtn: "Clear and start new site",
         rights: "All rights reserved",
         needPhoto: "Take a photo first.",
         saveStarted: "Save started",
+        additionalPhotoReady: "Details kept. You can capture another photo.",
         screenCleared: "Screen cleared",
         cameraUnsupported: "Camera is not supported in this browser.",
         openingCamera: "Opening camera...",
@@ -736,7 +740,9 @@
       if (createBtn.classList.contains("done")) {
         createBtn.textContent = t("createdBtn");
       }
-      if (downloadLink.classList.contains("saved")) {
+      if (downloadLink.classList.contains("additional-photo")) {
+        downloadLink.textContent = t("additionalPhotoBtn");
+      } else if (downloadLink.classList.contains("saved")) {
         downloadLink.textContent = t("savedBtn");
       }
       if (firebaseMode && !trialState) {
@@ -845,6 +851,12 @@
         statusEl.textContent = t("trialBlocked");
         return;
       }
+      if (downloadLink.classList.contains("additional-photo")) {
+        event.preventDefault();
+        prepareAdditionalPhoto();
+        await startCamera();
+        return;
+      }
       if (downloadLink.getAttribute("aria-disabled") === "true") {
         event.preventDefault();
         return;
@@ -859,12 +871,31 @@
       }
 
       downloadLink.classList.add("saved");
-      downloadLink.textContent = t("savedBtn");
-      downloadLink.setAttribute("aria-disabled", "true");
+      downloadLink.classList.add("additional-photo");
+      downloadLink.textContent = t("additionalPhotoBtn");
+      downloadLink.setAttribute("aria-disabled", "false");
       clearBtn.hidden = false;
       statusEl.textContent = t("saveStarted");
       logUsage("saveCount");
     });
+
+    function prepareAdditionalPhoto() {
+      stopCamera();
+      selectedImage = null;
+      generatedImageBlob = null;
+      generatedImageFileName = "";
+      preview.innerHTML = "";
+      preview.hidden = true;
+      preview.classList.remove("final-preview");
+      cameraBtn.hidden = false;
+      captureBtn.hidden = true;
+      downloadLink.href = "#";
+      downloadLink.download = "building-photo-report.png";
+      downloadLink.setAttribute("aria-disabled", "true");
+      downloadLink.classList.remove("saved", "additional-photo");
+      downloadLink.textContent = t("saveBtn");
+      statusEl.textContent = t("additionalPhotoReady");
+    }
 
     clearBtn.addEventListener("click", () => {
       document.getElementById("site").value = "";
@@ -891,7 +922,7 @@
       downloadLink.href = "#";
       downloadLink.download = "building-photo-report.png";
       downloadLink.setAttribute("aria-disabled", "true");
-      downloadLink.classList.remove("saved");
+      downloadLink.classList.remove("saved", "additional-photo");
       downloadLink.textContent = t("saveBtn");
       clearBtn.hidden = true;
       statusEl.textContent = t("screenCleared");
@@ -963,7 +994,7 @@
         downloadLink.href = "#";
         downloadLink.download = "building-photo-report.png";
         downloadLink.setAttribute("aria-disabled", "true");
-        downloadLink.classList.remove("saved");
+        downloadLink.classList.remove("saved", "additional-photo");
         downloadLink.textContent = t("saveBtn");
         clearBtn.hidden = true;
         logUsage("captureCount");
