@@ -1,0 +1,8 @@
+{
+  "appId": "com.mynewhouseori.buildingphoto",
+  "appName": "צילום מתועד",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
