@@ -55,6 +55,10 @@
       overflow-x: hidden;
     }
 
+    body.camera-open .app {
+      padding-bottom: calc(50svh + env(safe-area-inset-bottom));
+    }
+
     .rights {
       margin: 2px 0 0;
       color: rgba(255, 255, 255, .82);
@@ -929,19 +933,15 @@
     });
 
     function centerCameraPreview() {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          try {
-            preview.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-              inline: "nearest"
-            });
-          } catch (error) {
-            preview.scrollIntoView();
-          }
-        });
-      });
+      const scrollToPreview = () => {
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        const previewRect = preview.getBoundingClientRect();
+        const targetTop = window.scrollY + previewRect.top - ((viewportHeight - previewRect.height) / 2);
+        window.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+      };
+
+      requestAnimationFrame(() => requestAnimationFrame(scrollToPreview));
+      window.setTimeout(scrollToPreview, 350);
     }
 
     async function startCamera() {
@@ -969,6 +969,7 @@
         preview.hidden = false;
         preview.classList.remove("final-preview");
         preview.appendChild(liveVideo);
+        document.body.classList.add("camera-open");
         cameraBtn.hidden = true;
         captureBtn.hidden = false;
         createBtn.hidden = true;
@@ -1022,6 +1023,7 @@
     }
 
     function stopCamera() {
+      document.body.classList.remove("camera-open");
       if (cameraStream) {
         cameraStream.getTracks().forEach((track) => track.stop());
         cameraStream = null;
