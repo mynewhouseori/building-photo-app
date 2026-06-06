@@ -1007,7 +1007,8 @@
           firestore: firestoreModule,
           db: firestoreModule.getFirestore(app),
           trialDays: firebaseConfig.trialDays || 30,
-          trialResetId: firebaseConfig.trialResetId || ""
+          existingUsersResetStart: Date.parse(firebaseConfig.existingUsersResetStart || ""),
+          existingUsersResetUntil: Date.parse(firebaseConfig.existingUsersResetUntil || "")
         };
 
         onAuthStateChanged(firebaseServices.auth, async (user) => {
@@ -1070,26 +1071,21 @@
 
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (firebaseServices.trialResetId && data.trialResetId !== firebaseServices.trialResetId) {
-          startsAt = Date.now();
-          expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
-          await updateDoc(trialRef, {
-            email,
-            startsAt: Timestamp.fromMillis(startsAt),
-            expiresAt: Timestamp.fromMillis(expiresAt),
-            trialResetId: firebaseServices.trialResetId,
-            lastSeenAt: serverTimestamp(),
-            openCount: increment(1)
-          });
-        } else {
-          startsAt = data.startsAt.toMillis();
-          expiresAt = data.expiresAt.toMillis();
-          await updateDoc(trialRef, {
-            email,
-            lastSeenAt: serverTimestamp(),
-            openCount: increment(1)
-          });
+        startsAt = data.startsAt.toMillis();
+        expiresAt = data.expiresAt.toMillis();
+        if (
+          Number.isFinite(firebaseServices.existingUsersResetStart)
+          && Number.isFinite(firebaseServices.existingUsersResetUntil)
+          && startsAt < firebaseServices.existingUsersResetStart
+        ) {
+          startsAt = firebaseServices.existingUsersResetStart;
+          expiresAt = Math.max(expiresAt, firebaseServices.existingUsersResetUntil);
         }
+        await updateDoc(trialRef, {
+          email,
+          lastSeenAt: serverTimestamp(),
+          openCount: increment(1)
+        });
       } else {
         startsAt = Date.now();
         expiresAt = startsAt + firebaseServices.trialDays * 24 * 60 * 60 * 1000;
@@ -1098,7 +1094,6 @@
           email,
           startsAt: Timestamp.fromMillis(startsAt),
           expiresAt: Timestamp.fromMillis(expiresAt),
-          trialResetId: firebaseServices.trialResetId,
           createdAt: serverTimestamp(),
           lastSeenAt: serverTimestamp(),
           openCount: 1,

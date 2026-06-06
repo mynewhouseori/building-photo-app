@@ -36,7 +36,6 @@ Each document stores:
 - `email`
 - `startsAt`
 - `expiresAt`
-- `trialResetId`
 - `createdAt`
 - `lastSeenAt`
 - `openCount`
@@ -50,4 +49,4 @@ This is intentionally simple. It is stronger than a browser-only trial because t
 
 ## June 2026 reset
 
-`trialResetId: "2026-06-06-month-reset"` gives every existing user one new 30-day period the next time they open the app. The Firestore rules allow this specific reset only once per user.
+Existing users receive access until July 6, 2026 the next time they open the app. This reset is applied by the app configuration and does not require publishing new Firestore rules.

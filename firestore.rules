@@ -13,7 +13,6 @@ service cloud.firestore {
           'email',
           'startsAt',
           'expiresAt',
-          'trialResetId',
           'createdAt',
           'lastSeenAt',
           'openCount',
@@ -31,44 +30,22 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.startsAt is timestamp
         && request.resource.data.expiresAt is timestamp
-        && request.resource.data.trialResetId == '2026-06-06-month-reset'
         && request.resource.data.expiresAt > request.time;
-
-      function isNormalUsageUpdate() {
-        return request.resource.data.startsAt == resource.data.startsAt
-          && request.resource.data.expiresAt == resource.data.expiresAt
-          && request.resource.data.get('trialResetId', '') == resource.data.get('trialResetId', '')
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'email',
-            'lastSeenAt',
-            'openCount',
-            'captureCount',
-            'createImageCount',
-            'saveCount'
-          ]);
-      }
-
-      function isOneTimeMonthReset() {
-        return resource.data.get('trialResetId', '') != '2026-06-06-month-reset'
-          && request.resource.data.trialResetId == '2026-06-06-month-reset'
-          && request.resource.data.startsAt >= request.time - duration.value(5, 'm')
-          && request.resource.data.startsAt <= request.time + duration.value(5, 'm')
-          && request.resource.data.expiresAt == request.resource.data.startsAt + duration.value(30, 'd')
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'email',
-            'startsAt',
-            'expiresAt',
-            'trialResetId',
-            'lastSeenAt',
-            'openCount'
-          ]);
-      }
 
       allow update: if isOwner()
         && request.resource.data.uid == resource.data.uid
+        && request.resource.data.startsAt == resource.data.startsAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.keys().hasOnly(allowedFields())
-        && (isNormalUsageUpdate() || isOneTimeMonthReset());
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'lastSeenAt',
+          'openCount',
+          'captureCount',
+          'createImageCount',
+          'saveCount'
+        ]);
 
       allow delete: if false;
     }
