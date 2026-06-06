@@ -928,6 +928,22 @@
       statusEl.textContent = t("screenCleared");
     });
 
+    function centerCameraPreview() {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            preview.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+              inline: "nearest"
+            });
+          } catch (error) {
+            preview.scrollIntoView();
+          }
+        });
+      });
+    }
+
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         statusEl.textContent = t("cameraUnsupported");
@@ -958,6 +974,7 @@
         actionRow.classList.add("save-only");
         createBtn.disabled = true;
         statusEl.textContent = t("cameraReady");
+        centerCameraPreview();
       } catch (error) {
         statusEl.textContent = t("cameraDenied");
       }
