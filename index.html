@@ -668,6 +668,7 @@
         dir: "rtl",
         lang: "he",
         title: "צילום מתועד לבניין",
+        documentationTitle: "פרטים על הצילום",
         siteLabel: "אתר",
         sitePlaceholder: "שם האתר",
         photographerLabel: "צלם",
@@ -729,6 +730,7 @@
         dir: "ltr",
         lang: "en",
         title: "Documented Building Photo",
+        documentationTitle: "Photo details",
         siteLabel: "Site",
         sitePlaceholder: "Site name",
         photographerLabel: "Photographer",
@@ -1642,7 +1644,7 @@
       ctx.font = "800 54px Segoe UI, Arial, sans-serif";
       const margin = 58;
       const titleX = currentLang === "he" ? width - margin : margin;
-      ctx.fillText(t("title"), titleX, top + 74);
+      ctx.fillText(t("documentationTitle"), titleX, top + 74);
 
       const gap = 54;
       const columnWidth = (width - margin * 2 - gap) / 2;
