@@ -1,4 +1,4 @@
-const CACHE_NAME = "building-photo-app-v9-photo-details";
+const CACHE_NAME = "building-photo-app-v10-camera-zoom";
 const APP_SHELL = [
   "./",
   "./index.html",

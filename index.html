@@ -364,6 +364,54 @@
       object-fit: contain;
     }
 
+    .zoom-controls {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) 54px 44px;
+      align-items: center;
+      gap: 8px;
+      direction: ltr;
+      padding: 7px 8px;
+      color: #ffffff;
+      font-weight: 800;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, .45);
+    }
+
+    .zoom-controls[hidden] {
+      display: none;
+    }
+
+    .zoom-controls button {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(2, 6, 23, .72);
+      color: #ffffff;
+      font-size: 25px;
+      font-weight: 800;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .18);
+      touch-action: manipulation;
+    }
+
+    .zoom-controls input {
+      width: 100%;
+      min-width: 0;
+      min-height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      accent-color: #f97316;
+      -webkit-appearance: auto;
+      appearance: auto;
+    }
+
+    .zoom-value {
+      text-align: center;
+      direction: ltr;
+    }
+
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -603,6 +651,12 @@
           </button>
         </div>
         <div id="preview" class="preview" hidden></div>
+        <div id="zoomControls" class="zoom-controls" hidden>
+          <button id="zoomOutBtn" type="button" data-i18n-aria-label="zoomOutAria" aria-label="הקטן זום">−</button>
+          <input id="zoomRange" type="range" min="1" max="4" step="0.1" value="1" data-i18n-aria-label="zoomAria" aria-label="זום">
+          <span id="zoomValue" class="zoom-value">×1.0</span>
+          <button id="zoomInBtn" type="button" data-i18n-aria-label="zoomInAria" aria-label="הגדל זום">+</button>
+        </div>
         <button id="captureBtn" class="clear-btn" type="button" data-i18n="captureBtn" hidden>צלם</button>
         <button id="videoStopBtn" class="clear-btn recording-stop" type="button" hidden>עצור וידאו</button>
         <div id="actionRow" class="actions save-only">
@@ -625,6 +679,11 @@
     const captureBtn = document.getElementById("captureBtn");
     const videoStopBtn = document.getElementById("videoStopBtn");
     const videoSaveLink = document.getElementById("videoSaveLink");
+    const zoomControls = document.getElementById("zoomControls");
+    const zoomRange = document.getElementById("zoomRange");
+    const zoomValue = document.getElementById("zoomValue");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const zoomInBtn = document.getElementById("zoomInBtn");
     const locationCheck = document.getElementById("locationCheck");
     const dateTimeCheck = document.getElementById("dateTimeCheck");
     const accessPanel = document.getElementById("accessPanel");
@@ -660,6 +719,7 @@
     let videoRenderCanvas = null;
     let videoRenderAnimation = null;
     let documentedVideoStream = null;
+    let currentZoom = 1;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -681,6 +741,9 @@
         emailPlaceholder: "אימייל",
         loginBtn: "אישור אימייל",
         cameraAria: "צילום",
+        zoomAria: "זום",
+        zoomOutAria: "הקטן זום",
+        zoomInAria: "הגדל זום",
         videoAria: "צילום וידאו עד 15 שניות",
         videoStopBtn: "עצור וידאו",
         videoSaveBtn: "שמירת וידאו לטלפון",
@@ -743,6 +806,9 @@
         emailPlaceholder: "Email",
         loginBtn: "Confirm email",
         cameraAria: "Camera",
+        zoomAria: "Zoom",
+        zoomOutAria: "Zoom out",
+        zoomInAria: "Zoom in",
         videoAria: "Record video up to 15 seconds",
         videoStopBtn: "Stop video",
         videoSaveBtn: "Save video to phone",
@@ -869,6 +935,18 @@
       statusEl.textContent = t("videoSaveStarted");
     });
 
+    zoomRange.addEventListener("input", () => {
+      setZoom(Number(zoomRange.value));
+    });
+
+    zoomOutBtn.addEventListener("click", () => {
+      setZoom(currentZoom - 0.5);
+    });
+
+    zoomInBtn.addEventListener("click", () => {
+      setZoom(currentZoom + 0.5);
+    });
+
     locationCheck.addEventListener("change", async () => {
       if (isTrialExpired()) {
         locationCheck.checked = false;
@@ -989,6 +1067,7 @@
       preview.hidden = true;
       preview.classList.remove("final-preview", "video-preview");
       mediaLaunchers.hidden = false;
+      hideZoomControls();
       cameraBtn.hidden = false;
       captureBtn.hidden = true;
       videoStopBtn.hidden = true;
@@ -1018,6 +1097,7 @@
       preview.hidden = true;
       preview.classList.remove("final-preview", "video-preview");
       mediaLaunchers.hidden = false;
+      hideZoomControls();
       cameraBtn.hidden = false;
       captureBtn.hidden = true;
       videoStopBtn.hidden = true;
@@ -1046,6 +1126,24 @@
       videoSaveLink.hidden = true;
     }
 
+    function setZoom(value) {
+      currentZoom = Math.min(4, Math.max(1, Math.round(value * 10) / 10));
+      zoomRange.value = String(currentZoom);
+      zoomValue.textContent = `×${currentZoom.toFixed(1)}`;
+      if (liveVideo && !videoRenderCanvas) {
+        liveVideo.style.transform = `scale(${currentZoom})`;
+      }
+    }
+
+    function showZoomControls() {
+      setZoom(1);
+      zoomControls.hidden = false;
+    }
+
+    function hideZoomControls() {
+      zoomControls.hidden = true;
+    }
+
     function getSupportedVideoMimeType() {
       if (typeof MediaRecorder.isTypeSupported !== "function") {
         return "";
@@ -1071,7 +1169,7 @@
       }
 
       const ctx = videoRenderCanvas.getContext("2d");
-      drawCover(ctx, liveVideo, videoRenderCanvas.width, videoRenderCanvas.height);
+      drawCover(ctx, liveVideo, videoRenderCanvas.width, videoRenderCanvas.height, currentZoom);
       ctx.save();
       ctx.scale(.5, .5);
       drawWatermark(ctx);
@@ -1130,6 +1228,7 @@
         preview.classList.remove("video-preview");
         preview.classList.add("final-preview");
         preview.appendChild(videoRenderCanvas);
+        showZoomControls();
         document.body.classList.add("camera-open");
         mediaLaunchers.hidden = true;
         captureBtn.hidden = true;
@@ -1166,6 +1265,7 @@
         preview.innerHTML = "";
         preview.hidden = true;
         mediaLaunchers.hidden = false;
+        hideZoomControls();
         actionRow.hidden = false;
         videoStopBtn.hidden = true;
         statusEl.textContent = t("videoFailed");
@@ -1189,11 +1289,13 @@
       releaseDocumentedVideoStream();
       mediaRecorder = null;
       videoStopBtn.hidden = true;
+      hideZoomControls();
 
       if (!videoBlob.size) {
         preview.innerHTML = "";
         preview.hidden = true;
         mediaLaunchers.hidden = false;
+        hideZoomControls();
         actionRow.hidden = false;
         statusEl.textContent = t("videoFailed");
         return;
@@ -1210,6 +1312,7 @@
       preview.classList.remove("final-preview");
       preview.classList.add("video-preview");
       preview.appendChild(recordedVideo);
+      hideZoomControls();
 
       const extension = mimeType.includes("mp4") ? "mp4" : "webm";
       videoSaveLink.href = recordedVideoUrl;
@@ -1257,6 +1360,7 @@
         preview.hidden = false;
         preview.classList.remove("final-preview", "video-preview");
         preview.appendChild(liveVideo);
+        showZoomControls();
         document.body.classList.add("camera-open");
         mediaLaunchers.hidden = true;
         cameraBtn.hidden = true;
@@ -1294,6 +1398,7 @@
         preview.hidden = false;
         preview.classList.remove("final-preview", "video-preview");
         preview.appendChild(image.cloneNode());
+        hideZoomControls();
         mediaLaunchers.hidden = true;
         cameraBtn.hidden = true;
         captureBtn.hidden = true;
@@ -1338,6 +1443,7 @@
       videoTimer = null;
       window.clearTimeout(videoStopTimeout);
       videoStopTimeout = null;
+      hideZoomControls();
       const wasRecording = mediaRecorder?.state === "recording";
       if (wasRecording) {
         mediaRecorder.stop();
@@ -1780,7 +1886,7 @@
       ctx.restore();
     }
 
-    function drawCover(ctx, image, width, height) {
+    function drawCover(ctx, image, width, height, zoom = currentZoom) {
       const imageWidth = image.naturalWidth || image.videoWidth || image.width;
       const imageHeight = image.naturalHeight || image.videoHeight || image.height;
       if (!imageWidth || !imageHeight) {
@@ -1801,6 +1907,10 @@
         sourceY = (imageHeight - sourceHeight) / 2;
       }
 
+      sourceWidth /= zoom;
+      sourceHeight /= zoom;
+      sourceX = (imageWidth - sourceWidth) / 2;
+      sourceY = (imageHeight - sourceHeight) / 2;
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
     }
 
