@@ -657,6 +657,9 @@
     let videoStopTimeout = null;
     let videoRecordingEndsAt = 0;
     let videoSecondsLeft = 15;
+    let videoRenderCanvas = null;
+    let videoRenderAnimation = null;
+    let documentedVideoStream = null;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -1060,8 +1063,36 @@
       statusEl.textContent = t("videoRecording").replace("{seconds}", videoSecondsLeft);
     }
 
+    function renderDocumentedVideoFrame() {
+      if (!videoRenderCanvas || !liveVideo) {
+        return;
+      }
+
+      const ctx = videoRenderCanvas.getContext("2d");
+      drawCover(ctx, liveVideo, videoRenderCanvas.width, videoRenderCanvas.height);
+      ctx.save();
+      ctx.scale(.5, .5);
+      drawWatermark(ctx);
+      drawInfoPanel(ctx, 1400, 1800);
+      ctx.restore();
+      videoRenderAnimation = requestAnimationFrame(renderDocumentedVideoFrame);
+    }
+
+    function waitForVideoReady(video) {
+      if (video.readyState >= 2 && video.videoWidth) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        video.addEventListener("loadeddata", resolve, { once: true });
+      });
+    }
+
     async function startVideoRecording() {
-      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      if (
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined" ||
+        typeof HTMLCanvasElement.prototype.captureStream !== "function"
+      ) {
         statusEl.textContent = t("videoUnsupported");
         return;
       }
@@ -1069,6 +1100,9 @@
       try {
         stopCamera();
         clearRecordedVideo();
+        if (locationCheck.checked && !currentAddress) {
+          await requestAddress();
+        }
         statusEl.textContent = t("openingVideo");
         cameraStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
@@ -1081,11 +1115,19 @@
         liveVideo.muted = true;
         liveVideo.addEventListener("loadedmetadata", centerCameraPreview, { once: true });
         liveVideo.srcObject = cameraStream;
+        await liveVideo.play();
+        await waitForVideoReady(liveVideo);
+
+        videoRenderCanvas = document.createElement("canvas");
+        videoRenderCanvas.width = 700;
+        videoRenderCanvas.height = 900;
+        renderDocumentedVideoFrame();
 
         preview.innerHTML = "";
         preview.hidden = false;
-        preview.classList.remove("final-preview", "video-preview");
-        preview.appendChild(liveVideo);
+        preview.classList.remove("video-preview");
+        preview.classList.add("final-preview");
+        preview.appendChild(videoRenderCanvas);
         document.body.classList.add("camera-open");
         mediaLaunchers.hidden = true;
         captureBtn.hidden = true;
@@ -1094,9 +1136,11 @@
         clearBtn.hidden = true;
 
         const mimeType = getSupportedVideoMimeType();
+        documentedVideoStream = videoRenderCanvas.captureStream(24);
+        cameraStream.getAudioTracks().forEach((track) => documentedVideoStream.addTrack(track));
         mediaRecorder = mimeType
-          ? new MediaRecorder(cameraStream, { mimeType })
-          : new MediaRecorder(cameraStream);
+          ? new MediaRecorder(documentedVideoStream, { mimeType })
+          : new MediaRecorder(documentedVideoStream);
         recordedVideoChunks = [];
         mediaRecorder.addEventListener("dataavailable", (event) => {
           if (event.data.size > 0) {
@@ -1140,6 +1184,7 @@
       const mimeType = mediaRecorder?.mimeType || recordedVideoChunks[0]?.type || "video/webm";
       const videoBlob = new Blob(recordedVideoChunks, { type: mimeType });
       releaseCameraStream();
+      releaseDocumentedVideoStream();
       mediaRecorder = null;
       videoStopBtn.hidden = true;
 
@@ -1276,15 +1321,29 @@
       liveVideo = null;
     }
 
+    function releaseDocumentedVideoStream() {
+      cancelAnimationFrame(videoRenderAnimation);
+      videoRenderAnimation = null;
+      videoRenderCanvas = null;
+      if (documentedVideoStream) {
+        documentedVideoStream.getTracks().forEach((track) => track.stop());
+        documentedVideoStream = null;
+      }
+    }
+
     function stopCamera() {
       window.clearInterval(videoTimer);
       videoTimer = null;
       window.clearTimeout(videoStopTimeout);
       videoStopTimeout = null;
-      if (mediaRecorder?.state === "recording") {
+      const wasRecording = mediaRecorder?.state === "recording";
+      if (wasRecording) {
         mediaRecorder.stop();
       }
       releaseCameraStream();
+      if (!wasRecording) {
+        releaseDocumentedVideoStream();
+      }
     }
 
     function initializeTrial() {
@@ -1720,19 +1779,24 @@
     }
 
     function drawCover(ctx, image, width, height) {
-      const imageRatio = image.naturalWidth / image.naturalHeight;
+      const imageWidth = image.naturalWidth || image.videoWidth || image.width;
+      const imageHeight = image.naturalHeight || image.videoHeight || image.height;
+      if (!imageWidth || !imageHeight) {
+        return;
+      }
+      const imageRatio = imageWidth / imageHeight;
       const targetRatio = width / height;
-      let sourceWidth = image.naturalWidth;
-      let sourceHeight = image.naturalHeight;
+      let sourceWidth = imageWidth;
+      let sourceHeight = imageHeight;
       let sourceX = 0;
       let sourceY = 0;
 
       if (imageRatio > targetRatio) {
-        sourceWidth = image.naturalHeight * targetRatio;
-        sourceX = (image.naturalWidth - sourceWidth) / 2;
+        sourceWidth = imageHeight * targetRatio;
+        sourceX = (imageWidth - sourceWidth) / 2;
       } else {
-        sourceHeight = image.naturalWidth / targetRatio;
-        sourceY = (image.naturalHeight - sourceHeight) / 2;
+        sourceHeight = imageWidth / targetRatio;
+        sourceY = (imageHeight - sourceHeight) / 2;
       }
 
       ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
