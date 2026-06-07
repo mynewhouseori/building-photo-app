@@ -272,6 +272,7 @@
 
     .camera-icon-btn {
       min-height: 68px;
+      min-width: 92px;
       border: 0;
       border-radius: 0;
       background: transparent;
@@ -287,8 +288,21 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    .media-launchers {
+      display: flex;
+      direction: ltr;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
     .camera-icon {
       font-size: 58px;
+      line-height: 1;
+    }
+
+    .video-icon {
+      font-size: 52px;
       line-height: 1;
     }
 
@@ -324,6 +338,13 @@
       background: rgba(255, 255, 255, .08);
       border-color: #22c55e;
       box-shadow: 0 0 0 3px rgba(34, 197, 94, .22), 0 18px 34px rgba(0, 0, 0, .24);
+    }
+
+    .preview.video-preview {
+      padding: 0;
+      background: #000000;
+      border: 2px solid #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, .2), 0 18px 34px rgba(0, 0, 0, .24);
     }
 
     .preview img,
@@ -415,8 +436,19 @@
       display: none;
     }
 
+    .actions[hidden],
+    .download[hidden],
+    .media-launchers[hidden] {
+      display: none;
+    }
+
     .camera-icon-btn[hidden] {
       display: none;
+    }
+
+    .recording-stop {
+      background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+      color: #ffffff;
     }
 
     .btn[hidden] {
@@ -562,15 +594,22 @@
       </div>
 
       <div class="camera">
-        <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
-          <span class="camera-icon" aria-hidden="true">📷</span>
-        </button>
+        <div id="mediaLaunchers" class="media-launchers">
+          <button id="cameraBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="cameraAria" aria-label="צילום">
+            <span class="camera-icon" aria-hidden="true">📷</span>
+          </button>
+          <button id="videoBtn" class="camera-icon-btn" type="button" data-i18n-aria-label="videoAria" aria-label="צילום וידאו">
+            <span class="video-icon" aria-hidden="true">🎥</span>
+          </button>
+        </div>
         <div id="preview" class="preview" hidden></div>
         <button id="captureBtn" class="clear-btn" type="button" data-i18n="captureBtn" hidden>צלם</button>
+        <button id="videoStopBtn" class="clear-btn recording-stop" type="button" hidden>עצור וידאו</button>
         <div id="actionRow" class="actions save-only">
           <button id="createBtn" class="btn" type="button" data-i18n="createBtn" disabled hidden>צור תמונה</button>
           <a id="downloadLink" class="download" href="#" download="building-photo-report.png" aria-disabled="true" data-i18n="saveBtn">שמירה</a>
         </div>
+        <a id="videoSaveLink" class="download" href="#" download="building-video.webm" data-i18n="videoSaveBtn" hidden>שמירת וידאו לטלפון</a>
         <button id="clearBtn" class="clear-btn" type="button" data-i18n="clearBtn" hidden>נקה והתחל אתר חדש</button>
         <div id="trialNotice" class="trial-notice" aria-live="polite"></div>
         <div id="status" class="status" aria-live="polite"></div>
@@ -581,7 +620,11 @@
 
   <script>
     const cameraBtn = document.getElementById("cameraBtn");
+    const videoBtn = document.getElementById("videoBtn");
+    const mediaLaunchers = document.getElementById("mediaLaunchers");
     const captureBtn = document.getElementById("captureBtn");
+    const videoStopBtn = document.getElementById("videoStopBtn");
+    const videoSaveLink = document.getElementById("videoSaveLink");
     const locationCheck = document.getElementById("locationCheck");
     const dateTimeCheck = document.getElementById("dateTimeCheck");
     const accessPanel = document.getElementById("accessPanel");
@@ -607,6 +650,13 @@
     let firebaseTrialLoadedUser = "";
     let generatedImageBlob = null;
     let generatedImageFileName = "";
+    let mediaRecorder = null;
+    let recordedVideoChunks = [];
+    let recordedVideoUrl = "";
+    let videoTimer = null;
+    let videoStopTimeout = null;
+    let videoRecordingEndsAt = 0;
+    let videoSecondsLeft = 15;
     const watermarkLogo = new Image();
     watermarkLogo.src = "watermark-logo-transparent.png";
 
@@ -627,6 +677,15 @@
         emailPlaceholder: "אימייל",
         loginBtn: "אישור אימייל",
         cameraAria: "צילום",
+        videoAria: "צילום וידאו עד 15 שניות",
+        videoStopBtn: "עצור וידאו",
+        videoSaveBtn: "שמירת וידאו לטלפון",
+        videoUnsupported: "צילום וידאו אינו נתמך בדפדפן הזה.",
+        openingVideo: "פותח וידאו...",
+        videoRecording: "מקליט וידאו. נותרו {seconds} שניות.",
+        videoReady: "הווידאו מוכן לשמירה בטלפון.",
+        videoSaveStarted: "שמירת הווידאו התחילה.",
+        videoFailed: "לא ניתן לצלם וידאו. צריך לאשר הרשאות מצלמה ומיקרופון.",
         previewEmpty: "כאן תופיע התמונה",
         captureBtn: "צלם",
         createBtn: "צור תמונה",
@@ -679,6 +738,15 @@
         emailPlaceholder: "Email",
         loginBtn: "Confirm email",
         cameraAria: "Camera",
+        videoAria: "Record video up to 15 seconds",
+        videoStopBtn: "Stop video",
+        videoSaveBtn: "Save video to phone",
+        videoUnsupported: "Video recording is not supported in this browser.",
+        openingVideo: "Opening video...",
+        videoRecording: "Recording video. {seconds} seconds remaining.",
+        videoReady: "The video is ready to save to your phone.",
+        videoSaveStarted: "Video save started.",
+        videoFailed: "Could not record video. Allow camera and microphone permissions.",
         previewEmpty: "The photo will appear here",
         captureBtn: "Capture",
         createBtn: "Create image",
@@ -749,6 +817,9 @@
       } else if (downloadLink.classList.contains("saved")) {
         downloadLink.textContent = t("savedBtn");
       }
+      videoStopBtn.textContent = mediaRecorder?.state === "recording"
+        ? `${t("videoStopBtn")} (${videoSecondsLeft})`
+        : t("videoStopBtn");
       if (firebaseMode && !trialState) {
         trialNotice.textContent = t("loginRequired");
       }
@@ -772,8 +843,25 @@
       await startCamera();
     });
 
+    videoBtn.addEventListener("click", async (event) => {
+      if (isTrialExpired()) {
+        event.preventDefault();
+        statusEl.textContent = t("trialBlocked");
+        return;
+      }
+      await startVideoRecording();
+    });
+
     captureBtn.addEventListener("click", () => {
       capturePhoto();
+    });
+
+    videoStopBtn.addEventListener("click", () => {
+      stopVideoRecording();
+    });
+
+    videoSaveLink.addEventListener("click", () => {
+      statusEl.textContent = t("videoSaveStarted");
     });
 
     locationCheck.addEventListener("change", async () => {
@@ -829,8 +917,10 @@
       const dataUrl = canvas.toDataURL("image/png");
       preview.innerHTML = "";
       preview.hidden = false;
+      preview.classList.remove("video-preview");
       preview.classList.add("final-preview");
       preview.appendChild(canvas);
+      mediaLaunchers.hidden = true;
       cameraBtn.hidden = true;
       downloadLink.href = dataUrl;
       generatedImageFileName = createDownloadFileName();
@@ -842,6 +932,7 @@
       createBtn.classList.add("done");
       createBtn.textContent = t("createdBtn");
       createBtn.hidden = true;
+      actionRow.hidden = false;
       actionRow.classList.add("save-only");
       if (!locationCheck.checked || currentAddress) {
         statusEl.textContent = "";
@@ -885,14 +976,18 @@
 
     function prepareAdditionalPhoto() {
       stopCamera();
+      clearRecordedVideo();
       selectedImage = null;
       generatedImageBlob = null;
       generatedImageFileName = "";
       preview.innerHTML = "";
       preview.hidden = true;
-      preview.classList.remove("final-preview");
+      preview.classList.remove("final-preview", "video-preview");
+      mediaLaunchers.hidden = false;
       cameraBtn.hidden = false;
       captureBtn.hidden = true;
+      videoStopBtn.hidden = true;
+      actionRow.hidden = false;
       downloadLink.href = "#";
       downloadLink.download = "building-photo-report.png";
       downloadLink.setAttribute("aria-disabled", "true");
@@ -909,15 +1004,19 @@
       locationCheck.checked = false;
       currentAddress = "";
       stopCamera();
+      clearRecordedVideo();
       selectedImage = null;
       generatedImageBlob = null;
       generatedImageFileName = "";
 
       preview.innerHTML = "";
       preview.hidden = true;
-      preview.classList.remove("final-preview");
+      preview.classList.remove("final-preview", "video-preview");
+      mediaLaunchers.hidden = false;
       cameraBtn.hidden = false;
       captureBtn.hidden = true;
+      videoStopBtn.hidden = true;
+      actionRow.hidden = false;
       createBtn.hidden = true;
       actionRow.classList.add("save-only");
       createBtn.disabled = true;
@@ -931,6 +1030,147 @@
       clearBtn.hidden = true;
       statusEl.textContent = t("screenCleared");
     });
+
+    function clearRecordedVideo() {
+      if (recordedVideoUrl) {
+        URL.revokeObjectURL(recordedVideoUrl);
+        recordedVideoUrl = "";
+      }
+      recordedVideoChunks = [];
+      videoSaveLink.href = "#";
+      videoSaveLink.hidden = true;
+    }
+
+    function getSupportedVideoMimeType() {
+      if (typeof MediaRecorder.isTypeSupported !== "function") {
+        return "";
+      }
+      const candidates = [
+        "video/mp4;codecs=h264,aac",
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm"
+      ];
+      return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+    }
+
+    function updateVideoRecordingStatus() {
+      videoStopBtn.textContent = `${t("videoStopBtn")} (${videoSecondsLeft})`;
+      statusEl.textContent = t("videoRecording").replace("{seconds}", videoSecondsLeft);
+    }
+
+    async function startVideoRecording() {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        statusEl.textContent = t("videoUnsupported");
+        return;
+      }
+
+      try {
+        stopCamera();
+        clearRecordedVideo();
+        statusEl.textContent = t("openingVideo");
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: true
+        });
+
+        liveVideo = document.createElement("video");
+        liveVideo.autoplay = true;
+        liveVideo.playsInline = true;
+        liveVideo.muted = true;
+        liveVideo.addEventListener("loadedmetadata", centerCameraPreview, { once: true });
+        liveVideo.srcObject = cameraStream;
+
+        preview.innerHTML = "";
+        preview.hidden = false;
+        preview.classList.remove("final-preview", "video-preview");
+        preview.appendChild(liveVideo);
+        document.body.classList.add("camera-open");
+        mediaLaunchers.hidden = true;
+        captureBtn.hidden = true;
+        videoStopBtn.hidden = false;
+        actionRow.hidden = true;
+        clearBtn.hidden = true;
+
+        const mimeType = getSupportedVideoMimeType();
+        mediaRecorder = mimeType
+          ? new MediaRecorder(cameraStream, { mimeType })
+          : new MediaRecorder(cameraStream);
+        recordedVideoChunks = [];
+        mediaRecorder.addEventListener("dataavailable", (event) => {
+          if (event.data.size > 0) {
+            recordedVideoChunks.push(event.data);
+          }
+        });
+        mediaRecorder.addEventListener("stop", finishVideoRecording, { once: true });
+        mediaRecorder.start(250);
+
+        videoSecondsLeft = 15;
+        videoRecordingEndsAt = Date.now() + 15000;
+        updateVideoRecordingStatus();
+        videoTimer = window.setInterval(() => {
+          videoSecondsLeft = Math.max(0, Math.ceil((videoRecordingEndsAt - Date.now()) / 1000));
+          updateVideoRecordingStatus();
+        }, 250);
+        videoStopTimeout = window.setTimeout(stopVideoRecording, 15000);
+        centerCameraPreview();
+      } catch (error) {
+        stopCamera();
+        preview.innerHTML = "";
+        preview.hidden = true;
+        mediaLaunchers.hidden = false;
+        actionRow.hidden = false;
+        videoStopBtn.hidden = true;
+        statusEl.textContent = t("videoFailed");
+      }
+    }
+
+    function stopVideoRecording() {
+      if (mediaRecorder?.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }
+
+    function finishVideoRecording() {
+      window.clearInterval(videoTimer);
+      videoTimer = null;
+      window.clearTimeout(videoStopTimeout);
+      videoStopTimeout = null;
+      const mimeType = mediaRecorder?.mimeType || recordedVideoChunks[0]?.type || "video/webm";
+      const videoBlob = new Blob(recordedVideoChunks, { type: mimeType });
+      releaseCameraStream();
+      mediaRecorder = null;
+      videoStopBtn.hidden = true;
+
+      if (!videoBlob.size) {
+        preview.innerHTML = "";
+        preview.hidden = true;
+        mediaLaunchers.hidden = false;
+        actionRow.hidden = false;
+        statusEl.textContent = t("videoFailed");
+        return;
+      }
+
+      recordedVideoUrl = URL.createObjectURL(videoBlob);
+      const recordedVideo = document.createElement("video");
+      recordedVideo.controls = true;
+      recordedVideo.playsInline = true;
+      recordedVideo.preload = "metadata";
+      recordedVideo.src = recordedVideoUrl;
+      preview.innerHTML = "";
+      preview.hidden = false;
+      preview.classList.remove("final-preview");
+      preview.classList.add("video-preview");
+      preview.appendChild(recordedVideo);
+
+      const extension = mimeType.includes("mp4") ? "mp4" : "webm";
+      videoSaveLink.href = recordedVideoUrl;
+      videoSaveLink.download = createVideoFileName(extension);
+      videoSaveLink.hidden = false;
+      clearBtn.hidden = false;
+      statusEl.textContent = t("videoReady");
+    }
 
     function centerCameraPreview() {
       const scrollToPreview = () => {
@@ -952,6 +1192,7 @@
 
       try {
         stopCamera();
+        clearRecordedVideo();
         statusEl.textContent = t("openingCamera");
         cameraStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
@@ -967,12 +1208,15 @@
 
         preview.innerHTML = "";
         preview.hidden = false;
-        preview.classList.remove("final-preview");
+        preview.classList.remove("final-preview", "video-preview");
         preview.appendChild(liveVideo);
         document.body.classList.add("camera-open");
+        mediaLaunchers.hidden = true;
         cameraBtn.hidden = true;
         captureBtn.hidden = false;
+        videoStopBtn.hidden = true;
         createBtn.hidden = true;
+        actionRow.hidden = false;
         actionRow.classList.add("save-only");
         createBtn.disabled = true;
         statusEl.textContent = t("cameraReady");
@@ -1001,8 +1245,9 @@
         stopCamera();
         preview.innerHTML = "";
         preview.hidden = false;
-        preview.classList.remove("final-preview");
+        preview.classList.remove("final-preview", "video-preview");
         preview.appendChild(image.cloneNode());
+        mediaLaunchers.hidden = true;
         cameraBtn.hidden = true;
         captureBtn.hidden = true;
         createBtn.hidden = true;
@@ -1022,13 +1267,24 @@
       image.src = photoCanvas.toDataURL("image/jpeg", 0.92);
     }
 
-    function stopCamera() {
+    function releaseCameraStream() {
       document.body.classList.remove("camera-open");
       if (cameraStream) {
         cameraStream.getTracks().forEach((track) => track.stop());
         cameraStream = null;
       }
       liveVideo = null;
+    }
+
+    function stopCamera() {
+      window.clearInterval(videoTimer);
+      videoTimer = null;
+      window.clearTimeout(videoStopTimeout);
+      videoStopTimeout = null;
+      if (mediaRecorder?.state === "recording") {
+        mediaRecorder.stop();
+      }
+      releaseCameraStream();
     }
 
     function initializeTrial() {
@@ -1247,6 +1503,7 @@
 
       stopCamera();
       cameraBtn.disabled = true;
+      videoBtn.disabled = true;
       captureBtn.hidden = true;
       createBtn.disabled = true;
       downloadLink.setAttribute("aria-disabled", "true");
@@ -1386,6 +1643,22 @@
       ].join("");
 
       return `building-photo-report-${stamp}.png`;
+    }
+
+    function createVideoFileName(extension) {
+      const now = new Date();
+      const pad = (value) => String(value).padStart(2, "0");
+      const stamp = [
+        now.getFullYear(),
+        pad(now.getMonth() + 1),
+        pad(now.getDate())
+      ].join("") + "-" + [
+        pad(now.getHours()),
+        pad(now.getMinutes()),
+        pad(now.getSeconds())
+      ].join("");
+
+      return `building-video-${stamp}.${extension}`;
     }
 
     function dataUrlToBlob(dataUrl) {
