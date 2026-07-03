@@ -1494,6 +1494,7 @@
           signInAnonymously,
           firestore: firestoreModule,
           db: firestoreModule.getFirestore(app),
+          trialEnforcementEnabled: firebaseConfig.trialEnforcementEnabled !== false,
           trialDays: firebaseConfig.trialDays || 30,
           existingUsersResetStart: Date.parse(firebaseConfig.existingUsersResetStart || ""),
           existingUsersResetUntil: Date.parse(firebaseConfig.existingUsersResetUntil || "")
@@ -1637,11 +1638,24 @@
     }
 
     function isTrialExpired() {
+      if (!isTrialEnforcementEnabled()) {
+        return false;
+      }
       return trialState && Date.now() > trialState.expiresAt;
+    }
+
+    function isTrialEnforcementEnabled() {
+      return !firebaseMode || !firebaseServices || firebaseServices.trialEnforcementEnabled;
     }
 
     function updateTrialNotice() {
       if (!trialState) {
+        return;
+      }
+
+      if (!isTrialEnforcementEnabled()) {
+        trialNotice.classList.remove("expired");
+        trialNotice.textContent = "";
         return;
       }
 

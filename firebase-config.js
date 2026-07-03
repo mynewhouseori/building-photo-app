@@ -1,5 +1,6 @@
 window.BUILDING_PHOTO_FIREBASE = {
   enabled: true,
+  trialEnforcementEnabled: false,
   trialDays: 30,
   existingUsersResetStart: "2026-06-06T00:00:00+03:00",
   existingUsersResetUntil: "2026-07-06T00:00:00+03:00",
